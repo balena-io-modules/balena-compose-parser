@@ -268,9 +268,9 @@ function normalizeService(
 		);
 	}
 
-	// Reject if io.balena.private namespace is used for labels
+	// Warn if io.balena.private namespace is used for labels
 	if (service.labels) {
-		validateLabels(service.labels, serviceName);
+		validateLabels(service.labels);
 	}
 
 	// Reject network_mode:container:${containerId} as we don't support this
@@ -476,9 +476,9 @@ function normalizeServiceBuild(
 		}
 	}
 
-	// Reject if io.balena.private namespace is used for labels
+	// Warn if io.balena.private namespace is used for labels
 	if (build.labels) {
-		validateLabels(build.labels, serviceName);
+		validateLabels(build.labels);
 	}
 
 	// Convert absolute context paths to relative paths
@@ -499,17 +499,13 @@ function normalizeServiceBuild(
 	return build;
 }
 
-const NAMESPACED_LABEL_ERROR_MESSAGE =
-	'labels cannot use the "io.balena.private" namespace';
-function validateLabels(labels: Dict<any>, serviceName?: string) {
+export const NAMESPACED_LABEL_ERROR_MESSAGE =
+	'The "io.balena.private" namespace is reserved for Balena system labels.';
+function validateLabels(labels: Dict<any>) {
 	for (const [name, value] of Object.entries(labels)) {
-		// Reject io.balena.private label namespace
+		// Warn if io.balena.private label namespace
 		if (name.startsWith('io.balena.private')) {
-			if (serviceName) {
-				throw new ServiceError(NAMESPACED_LABEL_ERROR_MESSAGE, serviceName);
-			} else {
-				throw new ValidationError(NAMESPACED_LABEL_ERROR_MESSAGE);
-			}
+			console.warn(NAMESPACED_LABEL_ERROR_MESSAGE);
 		}
 
 		// Validate contract labels
@@ -707,7 +703,7 @@ function normalizeNetwork(rawNetwork: Dict<any>): Network {
 		);
 	}
 
-	// Reject if `io.balena.private` namespace is used for labels
+	// Warn if `io.balena.private` namespace is used for labels
 	if (network.labels) {
 		validateLabels(network.labels);
 	}
@@ -753,7 +749,7 @@ function normalizeVolume(rawVolume: Dict<any>): Volume {
 		}
 	}
 
-	// Reject if `io.balena.private` namespace is used for labels
+	// Warn	 if `io.balena.private` namespace is used for labels
 	if (volume.labels) {
 		validateLabels(volume.labels);
 	}
