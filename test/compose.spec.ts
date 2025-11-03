@@ -7,6 +7,7 @@ import {
 	SERVICE_CONFIG_DENY_LIST,
 	NETWORK_CONFIG_DENY_LIST,
 	VOLUME_CONFIG_DENY_LIST,
+	NAMESPACED_LABEL_ERROR_MESSAGE,
 } from '../lib/compose';
 import { ComposeError, ServiceError, ValidationError } from '../lib/errors';
 
@@ -360,19 +361,33 @@ describe('compose-go parsing & validation', () => {
 			}
 		});
 
-		it('should reject io.balena.private namespace in labels', async () => {
-			try {
-				await parse('test/fixtures/compose/services/label_namespace.yml');
-				expect.fail(
-					'Expected compose parser to reject io.balena.private namespace in labels',
-				);
-			} catch (error) {
-				expect(error).to.be.instanceOf(ServiceError);
-				expect(error.message).to.equal(
-					'labels cannot use the "io.balena.private" namespace',
-				);
-				expect(error.serviceName).to.equal('main');
-			}
+		it('should warn when io.balena.private namespace is used in labels', async () => {
+			const composition = await parse(
+				'test/fixtures/compose/services/label_namespace.yml',
+			);
+			expect(warnStub.callCount).to.equal(1);
+			expect(warnStub.firstCall.args[0]).to.equal(
+				NAMESPACED_LABEL_ERROR_MESSAGE,
+			);
+			expect(composition).to.deep.equal({
+				services: {
+					main: {
+						image: 'alpine:latest',
+						command: ['sh', '-c', 'sleep infinity'],
+						labels: {
+							'io.balena.private.foo': 'bar',
+						},
+						networks: {
+							default: null,
+						},
+					},
+				},
+				networks: {
+					default: {
+						ipam: {},
+					},
+				},
+			});
 		});
 
 		it('should error on long syntax depends_on config', async () => {
@@ -1500,19 +1515,36 @@ describe('compose-go parsing & validation', () => {
 			}
 		});
 
-		it('should reject io.balena.private namespace in labels', async () => {
-			try {
-				await parse('test/fixtures/compose/build/label_namespace.yml');
-				expect.fail(
-					'Expected compose parser to reject io.balena.private namespace in labels',
-				);
-			} catch (error) {
-				expect(error).to.be.instanceOf(ServiceError);
-				expect(error.serviceName).to.equal('main');
-				expect(error.message).to.equal(
-					'labels cannot use the "io.balena.private" namespace',
-				);
-			}
+		it('should warn when io.balena.private namespace is used in labels', async () => {
+			const composition = await parse(
+				'test/fixtures/compose/build/label_namespace.yml',
+			);
+			expect(warnStub.callCount).to.equal(1);
+			expect(warnStub.firstCall.args[0]).to.equal(
+				NAMESPACED_LABEL_ERROR_MESSAGE,
+			);
+			expect(composition).to.deep.equal({
+				services: {
+					main: {
+						build: {
+							context: '.',
+							dockerfile: 'Dockerfile',
+							labels: {
+								'io.balena.private.foo': 'bar',
+							},
+						},
+						command: null,
+						networks: {
+							default: null,
+						},
+					},
+				},
+				networks: {
+					default: {
+						ipam: {},
+					},
+				},
+			});
 		});
 	});
 
@@ -1644,18 +1676,33 @@ describe('compose-go parsing & validation', () => {
 			);
 		});
 
-		it('should reject io.balena.private namespace in labels', async () => {
-			try {
-				await parse('test/fixtures/compose/networks/label_namespace.yml');
-				expect.fail(
-					'Expected compose parser to reject io.balena.private namespace in labels',
-				);
-			} catch (error) {
-				expect(error).to.be.instanceOf(ComposeError);
-				expect(error.message).to.equal(
-					'labels cannot use the "io.balena.private" namespace',
-				);
-			}
+		it('should warn when io.balena.private namespace is used in labels', async () => {
+			const composition = await parse(
+				'test/fixtures/compose/networks/label_namespace.yml',
+			);
+			expect(warnStub.callCount).to.equal(1);
+			expect(warnStub.firstCall.args[0]).to.equal(
+				NAMESPACED_LABEL_ERROR_MESSAGE,
+			);
+			expect(composition).to.deep.equal({
+				services: {
+					main: {
+						image: 'alpine:latest',
+						command: ['sh', '-c', 'sleep infinity'],
+						networks: {
+							my_network: null,
+						},
+					},
+				},
+				networks: {
+					my_network: {
+						ipam: {},
+						labels: {
+							'io.balena.private.foo': 'bar',
+						},
+					},
+				},
+			});
 		});
 
 		it('should remove network.name', async () => {
