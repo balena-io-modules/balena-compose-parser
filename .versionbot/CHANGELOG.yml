@@ -1,4 +1,19 @@
 - commits:
+    - subject: Only warn if using namespaced io.balena.private label
+      hash: 48d91e3ec8ebb6b16b256b21c3d217085d5d5fe1
+      body: |
+        OS and Supervisor may need to specify the label when pushing
+        a release and should be allowed to do so.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+  version: 0.0.16
+  title: ""
+  date: 2025-11-03T19:54:55.711Z
+- commits:
     - subject: Move tar package to dependencies
       hash: 9629ae5f9f0cdcf025f2ed0e7ff3afdbc62017b2
       body: |
