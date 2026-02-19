@@ -2,7 +2,7 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-RUN apk add --update go~=1.24
+RUN apk add --update go~=1.25
 
 ARG BUILD_FROM_SOURCE
 
