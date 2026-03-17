@@ -20,6 +20,7 @@ import type {
 	DevicesConfig,
 	ServiceVolumeConfig,
 	ContractObject,
+	ContractWithChildren,
 	ImageDescriptor,
 } from './types';
 
@@ -757,7 +758,7 @@ function normalizeVolume(rawVolume: Dict<any>): Volume {
 	return volume;
 }
 
-interface ContractParser {
+export interface ContractParser {
 	validate(value: string, label: string): void;
 	transform(value: string): ContractObject;
 }
@@ -771,6 +772,9 @@ function validateVersionRange(value: string, label: string) {
 		);
 	}
 }
+
+const supportedOsSlugs = ['balena-os'];
+const supportedKernelSlugs = ['linux'];
 
 const contractRequirementLabelPrefix = 'io.balena.features.requires.';
 const supportedContractRequirementLabels: Dict<ContractParser> = {
@@ -807,12 +811,37 @@ const supportedContractRequirementLabels: Dict<ContractParser> = {
 						`got '${value}'`,
 				);
 			}
-			/* we might want to validate that the device type is a valid slug */
 		},
 		transform(value) {
 			return { type: 'arch.sw', slug: value };
 		},
 	},
+	...Object.fromEntries(
+		supportedOsSlugs.map((slug) => [
+			`sw.${slug}`,
+			{
+				validate(value: string, label: string) {
+					validateVersionRange(value, label);
+				},
+				transform(value: string) {
+					return { type: 'sw.os', slug, version: value };
+				},
+			},
+		]),
+	),
+	...Object.fromEntries(
+		supportedKernelSlugs.map((slug) => [
+			`sw.${slug}`,
+			{
+				validate(value: string, label: string) {
+					validateVersionRange(value, label);
+				},
+				transform(value: string) {
+					return { type: 'sw.kernel', slug, version: value };
+				},
+			},
+		]),
+	),
 };
 
 /**
@@ -825,27 +854,50 @@ export function toImageDescriptors(c: Composition): ImageDescriptor[] {
 	});
 }
 
-function createContractFromLabels(
+export function createContractFromLabels(
 	serviceName: string,
 	labels?: Dict<string>,
-): ContractObject | null {
-	const requires = Object.entries(labels ?? {}).flatMap(([key, value]) => {
+	contractParser: Dict<ContractParser> = supportedContractRequirementLabels,
+): ContractWithChildren | null {
+	// sw.os and sw.kernel support multiple types, to be combined into an "or" clause
+	const osRequires: ContractObject[] = [];
+	const kernelRequires: ContractObject[] = [];
+	const otherRequires: ContractObject[] = [];
+
+	Object.entries(labels ?? {}).forEach(([key, value]) => {
 		if (!key.startsWith(contractRequirementLabelPrefix)) {
-			return [];
+			return;
 		}
 
 		key = key.replace(contractRequirementLabelPrefix, '');
-		if (!(key in supportedContractRequirementLabels)) {
-			return [];
+		if (!(key in contractParser)) {
+			return;
 		}
 
-		const parser = supportedContractRequirementLabels[key];
-		return [parser.transform(value)];
+		const parser = contractParser[key];
+		const transformed = parser.transform(value);
+		if (transformed.type === 'sw.os') {
+			osRequires.push(transformed);
+		} else if (transformed.type === 'sw.kernel') {
+			kernelRequires.push(transformed);
+		} else {
+			otherRequires.push(transformed);
+		}
 	});
 
-	if (requires.length === 0) {
+	if (
+		otherRequires.length === 0 &&
+		osRequires.length === 0 &&
+		kernelRequires.length === 0
+	) {
 		return null;
 	}
+
+	const requires: ContractWithChildren[] = [
+		...otherRequires,
+		...(osRequires.length > 0 ? [{ or: osRequires }] : []),
+		...(kernelRequires.length > 0 ? [{ or: kernelRequires }] : []),
+	];
 
 	return {
 		type: 'sw.container',

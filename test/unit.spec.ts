@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 
-import { toImageDescriptors } from '../lib/index';
-import type { Composition } from '../lib/index';
+import { toImageDescriptors, createContractFromLabels } from '../lib/index';
+import type { Composition, ContractParser } from '../lib/index';
 
 describe('toImageDescriptors', () => {
 	it('should include contract objects for services with contract requirement labels', () => {
@@ -130,6 +130,153 @@ describe('toImageDescriptors', () => {
 				slug: 'contract-for-cache',
 				requires: [{ type: 'arch.sw', slug: 'amd64' }],
 			},
+		});
+	});
+});
+
+describe('createContractFromLabels', () => {
+	it('should correctly create a contract from labels', () => {
+		const contract = createContractFromLabels('my-service', {
+			'io.balena.features.requires.sw.supervisor': '>=16.1.0',
+			'io.balena.features.requires.arch.sw': 'amd64',
+			'io.balena.features.requires.hw.device-type': 'raspberrypi3',
+			'io.balena.features.requires.sw.l4t': '<=5',
+		});
+		expect(contract).to.deep.equal({
+			type: 'sw.container',
+			slug: 'contract-for-my-service',
+			requires: [
+				{
+					type: 'sw.supervisor',
+					version: '>=16.1.0',
+				},
+				{
+					type: 'arch.sw',
+					slug: 'amd64',
+				},
+				{
+					type: 'hw.device-type',
+					slug: 'raspberrypi3',
+				},
+				{
+					type: 'sw.l4t',
+					version: '<=5',
+				},
+			],
+		});
+	});
+
+	it('should support sw.os and sw.kernel label types', () => {
+		const contract = createContractFromLabels('my-service', {
+			'io.balena.features.requires.sw.balena-os': '>=3.0.0',
+			'io.balena.features.requires.sw.linux': '>=6.1.0',
+		});
+		expect(contract).to.deep.equal({
+			type: 'sw.container',
+			slug: 'contract-for-my-service',
+			requires: [
+				{
+					or: [
+						{
+							type: 'sw.os',
+							slug: 'balena-os',
+							version: '>=3.0.0',
+						},
+					],
+				},
+				{
+					or: [
+						{
+							type: 'sw.kernel',
+							slug: 'linux',
+							version: '>=6.1.0',
+						},
+					],
+				},
+			],
+		});
+	});
+
+	it('should support multiple sw.os and sw.kernel label types by combining them under an "or" clause', () => {
+		// We only support one sw.os and one sw.kernel label type at the moment,
+		// but we can pass in a fake parser that supports multiple OS and kernel types.
+		const mockContractParser: Record<string, ContractParser> = {
+			'sw.balena-os': {
+				validate() {
+					// no-op for testing
+				},
+				transform(value: string) {
+					return { type: 'sw.os', slug: 'balena-os', version: value };
+				},
+			},
+			'sw.ubuntu': {
+				validate() {
+					// no-op for testing
+				},
+				transform(value: string) {
+					return { type: 'sw.os', slug: 'ubuntu', version: value };
+				},
+			},
+			'sw.linux': {
+				validate() {
+					// no-op for testing
+				},
+				transform(value: string) {
+					return { type: 'sw.kernel', slug: 'linux', version: value };
+				},
+			},
+			'sw.freebsd': {
+				validate() {
+					// no-op for testing
+				},
+				transform(value: string) {
+					return { type: 'sw.kernel', slug: 'freebsd', version: value };
+				},
+			},
+		};
+		const contract = createContractFromLabels(
+			'my-service',
+			{
+				'io.balena.features.requires.sw.balena-os': '>=3.0.0',
+				'io.balena.features.requires.sw.ubuntu': '>=20.04',
+				'io.balena.features.requires.sw.linux': '>=6.1.0',
+				'io.balena.features.requires.sw.freebsd': '>=14.0.0',
+			},
+			mockContractParser,
+		);
+		expect(contract).to.deep.equal({
+			type: 'sw.container',
+			slug: 'contract-for-my-service',
+			requires: [
+				{
+					or: [
+						{
+							type: 'sw.os',
+							slug: 'balena-os',
+							version: '>=3.0.0',
+						},
+						{
+							type: 'sw.os',
+							slug: 'ubuntu',
+							version: '>=20.04',
+						},
+					],
+				},
+				{
+					or: [
+						{
+							type: 'sw.kernel',
+							slug: 'linux',
+							version: '>=6.1.0',
+						},
+						{
+							type: 'sw.kernel',
+							slug: 'freebsd',
+							version: '>=14.0.0',
+						},
+					],
+				},
+			],
 		});
 	});
 });
