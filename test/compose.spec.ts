@@ -2430,5 +2430,33 @@ describe('compose-go parsing & validation', () => {
 				);
 			}
 		});
+
+		it('should reject if label `io.balena.features.requires.sw.balena-os` uses a wrong version range', async () => {
+			try {
+				await parse('test/fixtures/contracts/invalid_sw_balena_os.yml');
+				expect.fail(
+					'Expected compose parser to throw if label `io.balena.features.requires.sw.balena-os` uses a wrong version range',
+				);
+			} catch (error) {
+				expect(error).to.be.instanceOf(ValidationError);
+				expect(error.message).to.equal(
+					"Invalid value for label 'io.balena.features.requires.sw.balena-os'. Expected a valid semver range; got 'not-valid'",
+				);
+			}
+		});
+
+		it('should reject if label `io.balena.features.requires.sw.linux` uses a wrong version range', async () => {
+			try {
+				await parse('test/fixtures/contracts/invalid_sw_linux.yml');
+				expect.fail(
+					'Expected compose parser to throw if label `io.balena.features.requires.sw.linux` uses a wrong version range',
+				);
+			} catch (error) {
+				expect(error).to.be.instanceOf(ValidationError);
+				expect(error.message).to.equal(
+					"Invalid value for label 'io.balena.features.requires.sw.linux'. Expected a valid semver range; got 'not-valid'",
+				);
+			}
+		});
 	});
 });
