@@ -1,4 +1,23 @@
 - commits:
+    - subject: Add sw.os and sw.kernel contract label support with or-clause grouping
+      hash: 3da8f7a2bf1dc2544e8d33db2a34f22a04699020
+      body: |
+        Add sw.balena-os (sw.os) and sw.linux (sw.kernel) to supported
+        contract requirement labels. When multiple OS or kernel labels are
+        present, they are grouped under an "or" clause in the contract.
+
+        Export createContractFromLabels, ContractParser, ContractObject, and
+        ContractWithChildren for downstream consumers.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+  version: 0.1.0
+  title: ""
+  date: 2026-03-23T22:11:18.346Z
+- commits:
     - subject: "Add id-token: write permission for NPM OIDC publishing"
       hash: 3022bb1396cbf183be93b75a20f17bf6d72e63f9
       body: ""
