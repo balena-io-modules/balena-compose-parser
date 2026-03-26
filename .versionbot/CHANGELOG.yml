@@ -1,4 +1,15 @@
 - commits:
+    - subject: Revert flowzone pinning to master
+      hash: 253acf572856767e03169d4ce7bd9cbfc0791433
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Kyle Harding
+  version: 0.1.1
+  title: ""
+  date: 2026-03-26T17:20:39.674Z
+- commits:
     - subject: Add sw.os and sw.kernel contract label support with or-clause grouping
       hash: 3da8f7a2bf1dc2544e8d33db2a34f22a04699020
       body: |
