@@ -2,7 +2,6 @@ import { exec as execSync } from 'child_process';
 import { promisify } from 'util';
 import { randomUUID } from 'crypto';
 import * as path from 'path';
-import { validRange } from 'semver';
 
 import {
 	ComposeError,
@@ -10,6 +9,7 @@ import {
 	ArgumentError,
 	ServiceError,
 } from './errors';
+import { validateContractLabels, createContractFromLabels } from './contracts';
 import type {
 	Composition,
 	Dict,
@@ -19,8 +19,6 @@ import type {
 	Volume,
 	DevicesConfig,
 	ServiceVolumeConfig,
-	ContractObject,
-	ContractWithChildren,
 	ImageDescriptor,
 } from './types';
 
@@ -503,20 +501,15 @@ function normalizeServiceBuild(
 export const NAMESPACED_LABEL_ERROR_MESSAGE =
 	'The "io.balena.private" namespace is reserved for Balena system labels.';
 function validateLabels(labels: Dict<any>) {
-	for (const [name, value] of Object.entries(labels)) {
+	for (const name of Object.keys(labels)) {
 		// Warn if io.balena.private label namespace
 		if (name.startsWith('io.balena.private')) {
 			console.warn(NAMESPACED_LABEL_ERROR_MESSAGE);
 		}
-
-		// Validate contract labels
-		if (name.startsWith(contractRequirementLabelPrefix)) {
-			const ctype = name.replace(contractRequirementLabelPrefix, '');
-			if (ctype in supportedContractRequirementLabels) {
-				supportedContractRequirementLabels[ctype].validate(value, name);
-			}
-		}
 	}
+
+	// Validate contract labels
+	validateContractLabels(labels);
 }
 
 function longToShortSyntaxPorts(
@@ -758,92 +751,6 @@ function normalizeVolume(rawVolume: Dict<any>): Volume {
 	return volume;
 }
 
-export interface ContractParser {
-	validate(value: string, label: string): void;
-	transform(value: string): ContractObject;
-}
-
-function validateVersionRange(value: string, label: string) {
-	if (validRange(value) == null) {
-		throw new ValidationError(
-			`Invalid value for label '${label}'. ` +
-				'Expected a valid semver range; ' +
-				`got '${value}'`,
-		);
-	}
-}
-
-const supportedOsSlugs = ['balena-os'];
-const supportedKernelSlugs = ['linux'];
-
-const contractRequirementLabelPrefix = 'io.balena.features.requires.';
-const supportedContractRequirementLabels: Dict<ContractParser> = {
-	'sw.supervisor': {
-		validate(value, label) {
-			validateVersionRange(value, label);
-		},
-		transform(value) {
-			return { type: 'sw.supervisor', version: value };
-		},
-	},
-	'sw.l4t': {
-		validate(value, label) {
-			validateVersionRange(value, label);
-		},
-		transform(value) {
-			return { type: 'sw.l4t', version: value };
-		},
-	},
-	'hw.device-type': {
-		validate() {
-			/* we might want to validate that the device type is a valid slug */
-		},
-		transform(value) {
-			return { type: 'hw.device-type', slug: value };
-		},
-	},
-	'arch.sw': {
-		validate(value, label) {
-			if (!['aarch64', 'rpi', 'amd64', 'armv7hf', 'i386'].includes(value)) {
-				throw new ValidationError(
-					`Invalid value for label '${label}'. ` +
-						'Expected a valid architecture string ' +
-						`got '${value}'`,
-				);
-			}
-		},
-		transform(value) {
-			return { type: 'arch.sw', slug: value };
-		},
-	},
-	...Object.fromEntries(
-		supportedOsSlugs.map((slug) => [
-			`sw.${slug}`,
-			{
-				validate(value: string, label: string) {
-					validateVersionRange(value, label);
-				},
-				transform(value: string) {
-					return { type: 'sw.os', slug, version: value };
-				},
-			},
-		]),
-	),
-	...Object.fromEntries(
-		supportedKernelSlugs.map((slug) => [
-			`sw.${slug}`,
-			{
-				validate(value: string, label: string) {
-					validateVersionRange(value, label);
-				},
-				transform(value: string) {
-					return { type: 'sw.kernel', slug, version: value };
-				},
-			},
-		]),
-	),
-};
-
 /**
  * Transforms a normalized composition into a list of image descriptors
  * that can be used to pull or build a service image.
@@ -852,58 +759,6 @@ export function toImageDescriptors(c: Composition): ImageDescriptor[] {
 	return Object.entries(c.services).map(([name, service]) => {
 		return createImageDescriptor(name, service);
 	});
-}
-
-export function createContractFromLabels(
-	serviceName: string,
-	labels?: Dict<string>,
-	contractParser: Dict<ContractParser> = supportedContractRequirementLabels,
-): ContractWithChildren | null {
-	// sw.os and sw.kernel support multiple types, to be combined into an "or" clause
-	const osRequires: ContractObject[] = [];
-	const kernelRequires: ContractObject[] = [];
-	const otherRequires: ContractObject[] = [];
-
-	Object.entries(labels ?? {}).forEach(([key, value]) => {
-		if (!key.startsWith(contractRequirementLabelPrefix)) {
-			return;
-		}
-
-		key = key.replace(contractRequirementLabelPrefix, '');
-		if (!(key in contractParser)) {
-			return;
-		}
-
-		const parser = contractParser[key];
-		const transformed = parser.transform(value);
-		if (transformed.type === 'sw.os') {
-			osRequires.push(transformed);
-		} else if (transformed.type === 'sw.kernel') {
-			kernelRequires.push(transformed);
-		} else {
-			otherRequires.push(transformed);
-		}
-	});
-
-	if (
-		otherRequires.length === 0 &&
-		osRequires.length === 0 &&
-		kernelRequires.length === 0
-	) {
-		return null;
-	}
-
-	const requires: ContractWithChildren[] = [
-		...otherRequires,
-		...(osRequires.length > 0 ? [{ or: osRequires }] : []),
-		...(kernelRequires.length > 0 ? [{ or: kernelRequires }] : []),
-	];
-
-	return {
-		type: 'sw.container',
-		slug: `contract-for-${serviceName}`,
-		requires,
-	};
 }
 
 function createImageDescriptor(

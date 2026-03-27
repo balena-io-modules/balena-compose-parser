@@ -1,5 +1,6 @@
-import { parse, toImageDescriptors, createContractFromLabels } from './compose';
-import type { ContractParser } from './compose';
+import { parse, toImageDescriptors } from './compose';
+import { createContractFromLabels } from './contracts';
+import type { ContractParser } from './contracts';
 import {
 	ServiceError,
 	ValidationError,
