@@ -709,6 +709,11 @@ function normalizeNetwork(rawNetwork: Dict<any>): Network {
 		);
 	}
 
+	// Reject enable_ipv4 as it's not supported by Podman and not
+	// useful without enable_ipv6 support (for ipv6-only networks)
+	if (network.enable_ipv4 != null) {
+		throw new ValidationError('enable_ipv4 is not supported');
+	}
 	// Reject enable_ipv6 as Engine doesn't support this yet
 	if (network.enable_ipv6) {
 		throw new ValidationError('enable_ipv6 is not supported');

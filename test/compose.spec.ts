@@ -1743,6 +1743,30 @@ describe('compose-go parsing & validation', () => {
 				);
 			}
 		});
+
+		it('should reject enable_ipv4', async () => {
+			try {
+				await parse(
+					'test/fixtures/compose/networks/unsupported/enable_ipv4.yml',
+				);
+				expect.fail('Expected compose parser to reject enable_ipv4');
+			} catch (error) {
+				expect(error).to.be.instanceOf(ComposeError);
+				expect(error.message).to.equal('enable_ipv4 is not supported');
+			}
+		});
+
+		it('should reject enable_ipv4 set to false', async () => {
+			try {
+				await parse(
+					'test/fixtures/compose/networks/unsupported/enable_ipv4_false.yml',
+				);
+				expect.fail('Expected compose parser to reject enable_ipv4');
+			} catch (error) {
+				expect(error).to.be.instanceOf(ComposeError);
+				expect(error.message).to.equal('enable_ipv4 is not supported');
+			}
+		});
 	});
 
 	describe('volumes', () => {
