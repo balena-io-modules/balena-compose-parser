@@ -10,6 +10,7 @@ import {
 	ServiceError,
 } from './errors';
 import { validateContractLabels, createContractFromLabels } from './contracts';
+import { usesNewComposeFields } from './legacy';
 import type {
 	Composition,
 	Dict,
@@ -770,7 +771,27 @@ function createImageDescriptor(
 	serviceName: string,
 	service: Service,
 ): ImageDescriptor {
-	const contract = createContractFromLabels(serviceName, service.labels);
+	let contract = createContractFromLabels(serviceName, service.labels);
+
+	// If the service uses newly supported compose fields, add a sw.compose
+	// contract requirement so that legacy Supervisors can reject the composition.
+	// Version 2 corresponds to Compose Spec v2: https://docs.docker.com/reference/compose-file/
+	if (usesNewComposeFields(service)) {
+		console.warn(
+			`Service "${serviceName}" uses compose fields that may not be supported on legacy Supervisor versions`,
+		);
+		const composeRequirement = { type: 'sw.compose', version: '>=2' };
+		if (contract && 'requires' in contract) {
+			(contract.requires as any[]).push(composeRequirement);
+		} else {
+			contract = {
+				type: 'sw.container',
+				slug: `contract-for-${serviceName}`,
+				requires: [composeRequirement],
+			};
+		}
+	}
+
 	if (service.image && !service.build) {
 		return {
 			serviceName,

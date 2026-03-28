@@ -1,7 +1,11 @@
 import { expect } from 'chai';
 
 import { toImageDescriptors, createContractFromLabels } from '../lib/index';
-import type { Composition, ContractParser } from '../lib/index';
+import type { Composition, ContractParser, Service } from '../lib/index';
+import {
+	usesNewComposeFields,
+	NEW_COMPOSE_SERVICE_FIELDS,
+} from '../lib/legacy';
 
 describe('toImageDescriptors', () => {
 	it('should include contract objects for services with contract requirement labels', () => {
@@ -278,5 +282,152 @@ describe('createContractFromLabels', () => {
 				},
 			],
 		});
+	});
+
+	it('should add sw.compose contract for services with newly supported fields', () => {
+		const composition: Composition = {
+			services: {
+				app: {
+					image: 'myapp:latest',
+					annotations: { 'com.example': 'value' },
+				},
+			},
+		};
+		const descriptors = toImageDescriptors(composition);
+		expect(descriptors[0].contract).to.deep.equal({
+			type: 'sw.container',
+			slug: 'contract-for-app',
+			requires: [{ type: 'sw.compose', version: '>=2' }],
+		});
+	});
+
+	it('should not add sw.compose contract for services without newly supported fields', () => {
+		const composition: Composition = {
+			services: {
+				app: {
+					image: 'myapp:latest',
+					read_only: true,
+				},
+			},
+		};
+		const descriptors = toImageDescriptors(composition);
+		expect(descriptors[0].contract).to.be.undefined;
+	});
+
+	it('should merge sw.compose contract with existing contract requirements', () => {
+		const composition: Composition = {
+			services: {
+				app: {
+					image: 'myapp:latest',
+					annotations: { 'com.example': 'value' },
+					labels: {
+						'io.balena.features.requires.sw.supervisor': '>=16.0.0',
+					},
+				},
+			},
+		};
+		const descriptors = toImageDescriptors(composition);
+		expect(descriptors[0].contract).to.deep.equal({
+			type: 'sw.container',
+			slug: 'contract-for-app',
+			requires: [
+				{ type: 'sw.supervisor', version: '>=16.0.0' },
+				{ type: 'sw.compose', version: '>=2' },
+			],
+		});
+	});
+});
+
+describe('usesNewComposeFields', () => {
+	it('should return true for each newly supported top-level service field', () => {
+		for (const field of NEW_COMPOSE_SERVICE_FIELDS) {
+			const service: Service = { [field]: 'test-value' };
+			expect(usesNewComposeFields(service)).to.equal(
+				true,
+				`expected usesNewComposeFields to return true for field "${field}"`,
+			);
+		}
+	});
+
+	it('should return false for a service with no newly supported fields', () => {
+		const service: Service = {
+			image: 'alpine:latest',
+			command: ['sh'],
+			labels: { 'com.example': 'value' },
+		};
+		expect(usesNewComposeFields(service)).to.equal(false);
+	});
+
+	it('should return true for pid=service:${serviceName}', () => {
+		const service: Service = { pid: 'service:other' };
+		expect(usesNewComposeFields(service)).to.equal(true);
+	});
+
+	it('should return false for pid=host', () => {
+		const service: Service = { pid: 'host' };
+		expect(usesNewComposeFields(service)).to.equal(false);
+	});
+
+	it('should return true for healthcheck.start_interval', () => {
+		const service: Service = {
+			healthcheck: {
+				test: ['CMD', 'true'],
+				start_interval: '5s',
+			},
+		};
+		expect(usesNewComposeFields(service)).to.equal(true);
+	});
+
+	it('should return false for healthcheck without start_interval', () => {
+		const service: Service = {
+			healthcheck: {
+				test: ['CMD', 'true'],
+				interval: '30s',
+				start_period: '40s',
+			},
+		};
+		expect(usesNewComposeFields(service)).to.equal(false);
+	});
+
+	it('should return true for newly supported network sub-fields', () => {
+		const newNetworkFields = [
+			'ipv6_address',
+			'mac_address',
+			'driver_opts',
+			'gw_priority',
+			'priority',
+		];
+		for (const field of newNetworkFields) {
+			const service: Service = {
+				networks: {
+					mynet: { [field]: 'test-value' },
+				},
+			};
+			expect(usesNewComposeFields(service)).to.equal(
+				true,
+				`expected usesNewComposeFields to return true for network field "${field}"`,
+			);
+		}
+	});
+
+	it('should return false for network sub-fields that are not newly supported', () => {
+		const service: Service = {
+			networks: {
+				mynet: {
+					aliases: ['alias1'],
+					ipv4_address: '10.0.0.2',
+				},
+			},
+		};
+		expect(usesNewComposeFields(service)).to.equal(false);
+	});
+
+	it('should return false for null network entries', () => {
+		const service: Service = {
+			networks: {
+				default: null,
+			},
+		};
+		expect(usesNewComposeFields(service)).to.equal(false);
 	});
 });
