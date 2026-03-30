@@ -3,6 +3,7 @@ import type { SinonStub } from 'sinon';
 import { stub } from 'sinon';
 import {
 	parse,
+	toImageDescriptors,
 	BUILD_CONFIG_DENY_LIST,
 	SERVICE_CONFIG_DENY_LIST,
 	NETWORK_CONFIG_DENY_LIST,
@@ -1376,6 +1377,39 @@ describe('compose-go parsing & validation', () => {
 				},
 			});
 		});
+
+		it('should add sw.compose contract if newly supported compose fields are present', async () => {
+			const composition = await parse(
+				'test/fixtures/compose/services/newly_supported.yml',
+			);
+			const descriptors = toImageDescriptors(composition);
+			const composeRequirement = { type: 'sw.compose', version: '>=2' };
+			// Service with newly supported top-level fields
+			const main = descriptors.find((d) => d.serviceName === 'main');
+			expect(main?.contract)
+				.to.have.property('requires')
+				.that.deep.includes(composeRequirement);
+			// Service with newly supported healthcheck sub-field
+			const sidecar = descriptors.find((d) => d.serviceName === 'sidecar');
+			expect(sidecar?.contract)
+				.to.have.property('requires')
+				.that.deep.includes(composeRequirement);
+			// Service with newly supported network sub-fields
+			const netservice = descriptors.find(
+				(d) => d.serviceName === 'netservice',
+			);
+			expect(netservice?.contract)
+				.to.have.property('requires')
+				.that.deep.includes(composeRequirement);
+		});
+
+		it('should not add sw.compose contract if only already-supported compose fields are present', async () => {
+			const composition = await parse(
+				'test/fixtures/compose/services/no_newly_supported.yml',
+			);
+			const descriptors = toImageDescriptors(composition);
+			expect(descriptors[0].contract).to.be.undefined;
+		});
 	});
 
 	describe('service.build', () => {
@@ -1741,6 +1775,30 @@ describe('compose-go parsing & validation', () => {
 				expect(error.message).to.equal(
 					'network.ipam.config.aux_addresses is not supported',
 				);
+			}
+		});
+
+		it('should reject enable_ipv4', async () => {
+			try {
+				await parse(
+					'test/fixtures/compose/networks/unsupported/enable_ipv4.yml',
+				);
+				expect.fail('Expected compose parser to reject enable_ipv4');
+			} catch (error) {
+				expect(error).to.be.instanceOf(ComposeError);
+				expect(error.message).to.equal('enable_ipv4 is not supported');
+			}
+		});
+
+		it('should reject enable_ipv4 set to false', async () => {
+			try {
+				await parse(
+					'test/fixtures/compose/networks/unsupported/enable_ipv4_false.yml',
+				);
+				expect.fail('Expected compose parser to reject enable_ipv4');
+			} catch (error) {
+				expect(error).to.be.instanceOf(ComposeError);
+				expect(error.message).to.equal('enable_ipv4 is not supported');
 			}
 		});
 	});

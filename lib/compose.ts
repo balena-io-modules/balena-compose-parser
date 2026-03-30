@@ -2,7 +2,6 @@ import { exec as execSync } from 'child_process';
 import { promisify } from 'util';
 import { randomUUID } from 'crypto';
 import * as path from 'path';
-import { validRange } from 'semver';
 
 import {
 	ComposeError,
@@ -10,6 +9,8 @@ import {
 	ArgumentError,
 	ServiceError,
 } from './errors';
+import { validateContractLabels, createContractFromLabels } from './contracts';
+import { usesNewComposeFields } from './legacy';
 import type {
 	Composition,
 	Dict,
@@ -19,8 +20,6 @@ import type {
 	Volume,
 	DevicesConfig,
 	ServiceVolumeConfig,
-	ContractObject,
-	ContractWithChildren,
 	ImageDescriptor,
 } from './types';
 
@@ -503,20 +502,15 @@ function normalizeServiceBuild(
 export const NAMESPACED_LABEL_ERROR_MESSAGE =
 	'The "io.balena.private" namespace is reserved for Balena system labels.';
 function validateLabels(labels: Dict<any>) {
-	for (const [name, value] of Object.entries(labels)) {
+	for (const name of Object.keys(labels)) {
 		// Warn if io.balena.private label namespace
 		if (name.startsWith('io.balena.private')) {
 			console.warn(NAMESPACED_LABEL_ERROR_MESSAGE);
 		}
-
-		// Validate contract labels
-		if (name.startsWith(contractRequirementLabelPrefix)) {
-			const ctype = name.replace(contractRequirementLabelPrefix, '');
-			if (ctype in supportedContractRequirementLabels) {
-				supportedContractRequirementLabels[ctype].validate(value, name);
-			}
-		}
 	}
+
+	// Validate contract labels
+	validateContractLabels(labels);
 }
 
 function longToShortSyntaxPorts(
@@ -716,6 +710,11 @@ function normalizeNetwork(rawNetwork: Dict<any>): Network {
 		);
 	}
 
+	// Reject enable_ipv4 as it's not supported by Podman and not
+	// useful without enable_ipv6 support (for ipv6-only networks)
+	if (network.enable_ipv4 != null) {
+		throw new ValidationError('enable_ipv4 is not supported');
+	}
 	// Reject enable_ipv6 as Engine doesn't support this yet
 	if (network.enable_ipv6) {
 		throw new ValidationError('enable_ipv6 is not supported');
@@ -758,92 +757,6 @@ function normalizeVolume(rawVolume: Dict<any>): Volume {
 	return volume;
 }
 
-export interface ContractParser {
-	validate(value: string, label: string): void;
-	transform(value: string): ContractObject;
-}
-
-function validateVersionRange(value: string, label: string) {
-	if (validRange(value) == null) {
-		throw new ValidationError(
-			`Invalid value for label '${label}'. ` +
-				'Expected a valid semver range; ' +
-				`got '${value}'`,
-		);
-	}
-}
-
-const supportedOsSlugs = ['balena-os'];
-const supportedKernelSlugs = ['linux'];
-
-const contractRequirementLabelPrefix = 'io.balena.features.requires.';
-const supportedContractRequirementLabels: Dict<ContractParser> = {
-	'sw.supervisor': {
-		validate(value, label) {
-			validateVersionRange(value, label);
-		},
-		transform(value) {
-			return { type: 'sw.supervisor', version: value };
-		},
-	},
-	'sw.l4t': {
-		validate(value, label) {
-			validateVersionRange(value, label);
-		},
-		transform(value) {
-			return { type: 'sw.l4t', version: value };
-		},
-	},
-	'hw.device-type': {
-		validate() {
-			/* we might want to validate that the device type is a valid slug */
-		},
-		transform(value) {
-			return { type: 'hw.device-type', slug: value };
-		},
-	},
-	'arch.sw': {
-		validate(value, label) {
-			if (!['aarch64', 'rpi', 'amd64', 'armv7hf', 'i386'].includes(value)) {
-				throw new ValidationError(
-					`Invalid value for label '${label}'. ` +
-						'Expected a valid architecture string ' +
-						`got '${value}'`,
-				);
-			}
-		},
-		transform(value) {
-			return { type: 'arch.sw', slug: value };
-		},
-	},
-	...Object.fromEntries(
-		supportedOsSlugs.map((slug) => [
-			`sw.${slug}`,
-			{
-				validate(value: string, label: string) {
-					validateVersionRange(value, label);
-				},
-				transform(value: string) {
-					return { type: 'sw.os', slug, version: value };
-				},
-			},
-		]),
-	),
-	...Object.fromEntries(
-		supportedKernelSlugs.map((slug) => [
-			`sw.${slug}`,
-			{
-				validate(value: string, label: string) {
-					validateVersionRange(value, label);
-				},
-				transform(value: string) {
-					return { type: 'sw.kernel', slug, version: value };
-				},
-			},
-		]),
-	),
-};
-
 /**
  * Transforms a normalized composition into a list of image descriptors
  * that can be used to pull or build a service image.
@@ -854,63 +767,31 @@ export function toImageDescriptors(c: Composition): ImageDescriptor[] {
 	});
 }
 
-export function createContractFromLabels(
-	serviceName: string,
-	labels?: Dict<string>,
-	contractParser: Dict<ContractParser> = supportedContractRequirementLabels,
-): ContractWithChildren | null {
-	// sw.os and sw.kernel support multiple types, to be combined into an "or" clause
-	const osRequires: ContractObject[] = [];
-	const kernelRequires: ContractObject[] = [];
-	const otherRequires: ContractObject[] = [];
-
-	Object.entries(labels ?? {}).forEach(([key, value]) => {
-		if (!key.startsWith(contractRequirementLabelPrefix)) {
-			return;
-		}
-
-		key = key.replace(contractRequirementLabelPrefix, '');
-		if (!(key in contractParser)) {
-			return;
-		}
-
-		const parser = contractParser[key];
-		const transformed = parser.transform(value);
-		if (transformed.type === 'sw.os') {
-			osRequires.push(transformed);
-		} else if (transformed.type === 'sw.kernel') {
-			kernelRequires.push(transformed);
-		} else {
-			otherRequires.push(transformed);
-		}
-	});
-
-	if (
-		otherRequires.length === 0 &&
-		osRequires.length === 0 &&
-		kernelRequires.length === 0
-	) {
-		return null;
-	}
-
-	const requires: ContractWithChildren[] = [
-		...otherRequires,
-		...(osRequires.length > 0 ? [{ or: osRequires }] : []),
-		...(kernelRequires.length > 0 ? [{ or: kernelRequires }] : []),
-	];
-
-	return {
-		type: 'sw.container',
-		slug: `contract-for-${serviceName}`,
-		requires,
-	};
-}
-
 function createImageDescriptor(
 	serviceName: string,
 	service: Service,
 ): ImageDescriptor {
-	const contract = createContractFromLabels(serviceName, service.labels);
+	let contract = createContractFromLabels(serviceName, service.labels);
+
+	// If the service uses newly supported compose fields, add a sw.compose
+	// contract requirement so that legacy Supervisors can reject the composition.
+	// Version 2 corresponds to Compose Spec v2: https://docs.docker.com/reference/compose-file/
+	if (usesNewComposeFields(service)) {
+		console.warn(
+			`Service "${serviceName}" uses compose fields that may not be supported on legacy Supervisor versions`,
+		);
+		const composeRequirement = { type: 'sw.compose', version: '>=2' };
+		if (contract && 'requires' in contract) {
+			(contract.requires as any[]).push(composeRequirement);
+		} else {
+			contract = {
+				type: 'sw.container',
+				slug: `contract-for-${serviceName}`,
+				requires: [composeRequirement],
+			};
+		}
+	}
+
 	if (service.image && !service.build) {
 		return {
 			serviceName,

@@ -1,0 +1,30 @@
+services:
+  main:
+    image: alpine:latest
+    command: sh -c "sleep infinity"
+    annotations:
+      - com.example.annotation=value
+    uts: host
+    post_start:
+      - command: echo hello
+  sidecar:
+    image: alpine:latest
+    command: sh -c "sleep infinity"
+    healthcheck:
+      test: ["CMD", "true"]
+      start_interval: 5s
+  netservice:
+    image: alpine:latest
+    command: sh -c "sleep infinity"
+    networks:
+      net:
+        ipv6_address: 2001:db8::2
+        mac_address: 02:42:ac:11:00:02
+
+networks:
+  net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 2001:db8::/64
+          gateway: 2001:db8::1

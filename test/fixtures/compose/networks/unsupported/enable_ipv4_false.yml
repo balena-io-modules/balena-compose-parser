@@ -1,0 +1,9 @@
+services:
+  main:
+    image: alpine:latest
+    command: sh -c "sleep infinity"
+
+networks:
+  mynet:
+    driver: bridge
+    enable_ipv4: false
