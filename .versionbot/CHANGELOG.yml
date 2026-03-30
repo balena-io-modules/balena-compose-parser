@@ -1,4 +1,38 @@
 - commits:
+    - subject: Add sw.compose contract for newly supported fields
+      hash: aaf30f9f058c43de79ee07c19107fa123f7bb767
+      body: |
+        When a service uses compose fields that are newly supported by
+        balena-compose-parser but not by legacy Supervisors, add
+        a `sw.compose` container contract, so that legacy
+        Supervisors can gracefully reject the composition.
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Christina Ying Wang
+    - subject: Reject network.enable_ipv4
+      hash: 9856cbacdee284254e9ce2f89e1810c38255643e
+      body: |
+        It's not useful with enable_ipv6 which Engine doesn't yet support, and
+        Podman also does not support enable_ipv4.
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Christina Ying Wang
+    - subject: Extract contract handling into contracts.ts
+      hash: 377186bd6b3b9b34f16df1c6294e0066aedec351
+      body: |
+        Move contract parsing, validation, and image descriptor logic out of
+        compose.ts into a dedicated contracts.ts module. Rename
+        contractRequirementLabelPrefix to CONTRACT_REQUIREMENT_LABEL_PREFIX.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+  version: 0.2.0
+  title: ""
+  date: 2026-03-30T20:52:08.753Z
+- commits:
     - subject: Revert flowzone pinning to master
       hash: 253acf572856767e03169d4ce7bd9cbfc0791433
       body: ""
