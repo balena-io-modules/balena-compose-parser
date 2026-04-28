@@ -1,4 +1,17 @@
 - commits:
+    - subject: Use sw.spec/compose instead of sw.compose contract type
+      hash: 8840aaa69c78979213864087a39a81863ce12a44
+      body: |
+        The compose spec is more semantically a specification, so use
+        type: sw.spec with slug: compose rather than type: sw.compose.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+  version: 0.2.1
+  title: ""
+  date: 2026-04-28T16:08:57.177Z
+- commits:
     - subject: Add sw.compose contract for newly supported fields
       hash: aaf30f9f058c43de79ee07c19107fa123f7bb767
       body: |
