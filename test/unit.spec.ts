@@ -284,7 +284,7 @@ describe('createContractFromLabels', () => {
 		});
 	});
 
-	it('should add sw.compose contract for services with newly supported fields', () => {
+	it('should add sw.spec/compose contract for services with newly supported fields', () => {
 		const composition: Composition = {
 			services: {
 				app: {
@@ -297,11 +297,11 @@ describe('createContractFromLabels', () => {
 		expect(descriptors[0].contract).to.deep.equal({
 			type: 'sw.container',
 			slug: 'contract-for-app',
-			requires: [{ type: 'sw.compose', version: '>=2' }],
+			requires: [{ type: 'sw.spec', slug: 'compose', version: '>=2' }],
 		});
 	});
 
-	it('should not add sw.compose contract for services without newly supported fields', () => {
+	it('should not add sw.spec/compose contract for services without newly supported fields', () => {
 		const composition: Composition = {
 			services: {
 				app: {
@@ -314,7 +314,7 @@ describe('createContractFromLabels', () => {
 		expect(descriptors[0].contract).to.be.undefined;
 	});
 
-	it('should merge sw.compose contract with existing contract requirements', () => {
+	it('should merge sw.spec/compose contract with existing contract requirements', () => {
 		const composition: Composition = {
 			services: {
 				app: {
@@ -332,7 +332,7 @@ describe('createContractFromLabels', () => {
 			slug: 'contract-for-app',
 			requires: [
 				{ type: 'sw.supervisor', version: '>=16.0.0' },
-				{ type: 'sw.compose', version: '>=2' },
+				{ type: 'sw.spec', slug: 'compose', version: '>=2' },
 			],
 		});
 	});

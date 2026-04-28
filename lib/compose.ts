@@ -773,14 +773,18 @@ function createImageDescriptor(
 ): ImageDescriptor {
 	let contract = createContractFromLabels(serviceName, service.labels);
 
-	// If the service uses newly supported compose fields, add a sw.compose
+	// If the service uses newly supported compose fields, add a sw.spec/compose
 	// contract requirement so that legacy Supervisors can reject the composition.
 	// Version 2 corresponds to Compose Spec v2: https://docs.docker.com/reference/compose-file/
 	if (usesNewComposeFields(service)) {
 		console.warn(
 			`Service "${serviceName}" uses compose fields that may not be supported on legacy Supervisor versions`,
 		);
-		const composeRequirement = { type: 'sw.compose', version: '>=2' };
+		const composeRequirement = {
+			type: 'sw.spec',
+			slug: 'compose',
+			version: '>=2',
+		};
 		if (contract && 'requires' in contract) {
 			(contract.requires as any[]).push(composeRequirement);
 		} else {
