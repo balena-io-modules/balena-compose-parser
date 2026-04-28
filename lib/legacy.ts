@@ -2,7 +2,7 @@ import type { Service } from './types';
 
 // Fields newly supported by balena-compose-parser that were
 // not supported by balena-compose previously. If a service uses any of these fields,
-// we add a sw.compose contract requirement so that legacy Supervisors which don't support
+// we add a sw.spec/compose contract requirement so that legacy Supervisors which don't support
 // the new compose fields can gracefully reject the composition.
 // TODO: When long syntax depends_on and long syntax volumes are supported
 // (i.e. their rejections in normalizeService are removed), add them here.
