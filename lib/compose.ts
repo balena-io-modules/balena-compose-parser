@@ -112,7 +112,7 @@ function toComposeError(stderr: string): ComposeError[] {
 			}
 		} catch {
 			// If JSON parsing fails, warn and skip this line
-			console.warn(`Could not parse stderr line as JSON: ${line}`);
+			console.log(`Could not parse stderr line as JSON: ${line}`);
 		}
 	});
 	return errors;
@@ -415,7 +415,7 @@ function normalizeService(
 
 	// Warn that expose is informational only
 	if (service.expose) {
-		console.warn(
+		console.log(
 			'service.expose is informational only. Removing from the composition',
 		);
 		delete service.expose;
@@ -426,14 +426,14 @@ function normalizeService(
 		service.oom_score_adj &&
 		service.oom_score_adj <= OOM_SCORE_ADJ_WARN_THRESHOLD
 	) {
-		console.warn(
+		console.log(
 			`service.oom_score_adj values under ${OOM_SCORE_ADJ_WARN_THRESHOLD} may break device functionality`,
 		);
 	}
 
 	// 	Warn that container_name is not supported and remove it
 	if (service.container_name) {
-		console.warn(
+		console.log(
 			'service.container_name is not supported. Removing from the composition',
 		);
 		delete service.container_name;
@@ -505,7 +505,7 @@ function validateLabels(labels: Dict<any>) {
 	for (const name of Object.keys(labels)) {
 		// Warn if io.balena.private label namespace
 		if (name.startsWith('io.balena.private')) {
-			console.warn(NAMESPACED_LABEL_ERROR_MESSAGE);
+			console.log(NAMESPACED_LABEL_ERROR_MESSAGE);
 		}
 	}
 
@@ -531,7 +531,7 @@ function longToShortSyntaxPorts(
 			// See: https://docs.docker.com/reference/compose-file/services/#long-syntax-4
 			for (const field of ignoredFields) {
 				if (field in port) {
-					console.warn(
+					console.log(
 						`service.ports.${field} is not supported. Removing from the composition`,
 					);
 					delete (port as any)[field];
@@ -722,7 +722,7 @@ function normalizeNetwork(rawNetwork: Dict<any>): Network {
 
 	// Warn if com.docker.network.bridge.name driver_opts is present as it may interfere with device firewall
 	if (network.driver_opts?.['com.docker.network.bridge.name']) {
-		console.warn(
+		console.log(
 			'com.docker.network.bridge.name network.driver_opt may interfere with device firewall',
 		);
 	}
@@ -777,7 +777,7 @@ function createImageDescriptor(
 	// contract requirement so that legacy Supervisors can reject the composition.
 	// Version 2 corresponds to Compose Spec v2: https://docs.docker.com/reference/compose-file/
 	if (usesNewComposeFields(service)) {
-		console.warn(
+		console.log(
 			`Service "${serviceName}" uses compose fields that may not be supported on legacy Supervisor versions`,
 		);
 		const composeRequirement = {
