@@ -1,4 +1,17 @@
 - commits:
+    - subject: Support all ipc values except service:${serviceName}
+      hash: be5c46e9c8ea21d8eba5e87ccace784b47b2b62e
+      body: |
+        Although not documented in the official docker compose docs,
+        these values are supported.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+  version: 0.2.2
+  title: ""
+  date: 2026-05-06T19:49:39.258Z
+- commits:
     - subject: Use sw.spec/compose instead of sw.compose contract type
       hash: 8840aaa69c78979213864087a39a81863ce12a44
       body: |
