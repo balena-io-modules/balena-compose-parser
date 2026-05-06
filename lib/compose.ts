@@ -1,4 +1,4 @@
-import { exec as execSync } from 'child_process';
+import { execFile as execFileSync } from 'child_process';
 import { promisify } from 'util';
 import { randomUUID } from 'crypto';
 import * as path from 'path';
@@ -23,7 +23,7 @@ import type {
 	ImageDescriptor,
 } from './types';
 
-const exec = promisify(execSync);
+const execFile = promisify(execFileSync);
 
 /**
  * Parse one or more compose files using compose-go, and return a normalized composition object
@@ -47,15 +47,19 @@ export async function parse(
 	// as balena doesn't use the project name, but compose-go injects it in several places.
 	const projectName = randomUUID();
 
-	// Build the command with -f flags for each file
-	const fileFlags = filePaths.map((filePath) => `-f ${filePath}`).join(' ');
+	// Build args with -f flags for each file. Use execFile to avoid shell
+	// quoting issues when the binary path or compose file paths contain spaces
+	const args = [
+		...filePaths.flatMap((filePath) => ['-f', filePath]),
+		projectName,
+	];
 
 	const binaryName =
 		process.platform === 'win32'
 			? 'balena-compose-parser.exe'
 			: 'balena-compose-parser';
 	const binaryPath = path.join(__dirname, '..', 'bin', binaryName);
-	const result = await exec(`${binaryPath} ${fileFlags} ${projectName}`, {
+	const result = await execFile(binaryPath, args, {
 		env: process.env,
 	}).catch((e) => {
 		// If exec error has stdout/stderr, handle them later; otherwise throw immediately
