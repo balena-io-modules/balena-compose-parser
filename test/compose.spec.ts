@@ -550,6 +550,29 @@ describe('compose-go parsing & validation', () => {
 			});
 		});
 
+		it('should accept service.ipc: host', async () => {
+			const composition = await parse(
+				'test/fixtures/compose/services/ipc_host.yml',
+			);
+			expect(composition).to.deep.equal({
+				services: {
+					main: {
+						image: 'alpine:latest',
+						command: ['sh', '-c', 'sleep infinity'],
+						ipc: 'host',
+						networks: {
+							default: null,
+						},
+					},
+				},
+				networks: {
+					default: {
+						ipam: {},
+					},
+				},
+			});
+		});
+
 		it('should reject service.ipc which references service:${serviceName}', async () => {
 			try {
 				await parse('test/fixtures/compose/services/ipc.yml');

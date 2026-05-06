@@ -306,7 +306,10 @@ function normalizeService(
 	}
 
 	// Reject service.ipc which references service:${serviceName} as Supervisor doesn't support this yet
-	if (service.ipc && service.ipc !== 'shareable') {
+	if (
+		typeof service.ipc === 'string' &&
+		service.ipc.trim().startsWith('service:')
+	) {
 		throw new ServiceError(
 			'service.ipc which references service:${serviceName} is not supported',
 			serviceName,
