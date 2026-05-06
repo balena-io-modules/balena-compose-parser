@@ -458,6 +458,34 @@ describe('compose-go parsing & validation', () => {
 			});
 		});
 
+		it('should coerce null/undefined environment values to empty string', async () => {
+			const composition = await parse(
+				'test/fixtures/compose/services/null_env.yml',
+			);
+			expect(composition).to.deep.equal({
+				services: {
+					main: {
+						image: 'alpine:latest',
+						command: ['sh', '-c', 'sleep infinity'],
+						environment: {
+							EXPLICIT_VALUE: 'hello',
+							EXPLICIT_EMPTY: '',
+							NULL_DICT_FORM: '',
+							UNDEFINED_FORM: '',
+						},
+						networks: {
+							default: null,
+						},
+					},
+				},
+				networks: {
+					default: {
+						ipam: {},
+					},
+				},
+			});
+		});
+
 		it('should merge services from extends config', async () => {
 			const composition = await parse(
 				'test/fixtures/compose/services/extends.yml',

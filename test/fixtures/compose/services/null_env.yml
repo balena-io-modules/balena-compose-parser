@@ -1,0 +1,9 @@
+services:
+  main:
+    image: alpine:latest
+    command: sh -c "sleep infinity"
+    environment:
+      EXPLICIT_VALUE: hello
+      EXPLICIT_EMPTY: ""
+      NULL_DICT_FORM: null
+      UNDEFINED_FORM:
