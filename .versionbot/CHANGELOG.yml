@@ -1,4 +1,18 @@
 - commits:
+    - subject: Coerce env var values to empty string
+      hash: 1aad1a29813abde6785e3b546e4def6df62c59dd
+      body: |
+        Upstream API doesn't accept null/undefined for
+        env var values, so we coerce to empty string just
+        as balena-compose <=v7 (prior to compose-parser integration) did.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+  version: 0.2.4
+  title: ""
+  date: 2026-05-11T18:39:58.867Z
+- commits:
     - subject: Use execFile instead of exec to handle paths with spaces
       hash: a2f59ad9c85391aef846c7e9b644ce1b71e9acf2
       body: ""
