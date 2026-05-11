@@ -417,6 +417,18 @@ function normalizeService(
 	// Delete env_file, as compose-go adds env_file vars to service.environment
 	delete service.env_file;
 
+	// Coerce null/undefined env var values to empty string.
+	// `KEY: null` is valid in the Compose spec, but the API
+	// rejects null values for env vars, so we coerce to '' to match
+	// @balena/compose parser behavior prior to integrating compose-parser.
+	if (service.environment) {
+		for (const [key, value] of Object.entries(service.environment)) {
+			if (value == null) {
+				service.environment[key] = '';
+			}
+		}
+	}
+
 	// Delete label_file, as compose-go adds label_file labels to service.labels
 	delete service.label_file;
 
