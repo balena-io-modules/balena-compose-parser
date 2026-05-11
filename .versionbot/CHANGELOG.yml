@@ -1,4 +1,15 @@
 - commits:
+    - subject: Use execFile instead of exec to handle paths with spaces
+      hash: a2f59ad9c85391aef846c7e9b644ce1b71e9acf2
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+  version: 0.2.3
+  title: ""
+  date: 2026-05-11T18:28:50.062Z
+- commits:
     - subject: Support all ipc values except service:${serviceName}
       hash: be5c46e9c8ea21d8eba5e87ccace784b47b2b62e
       body: |
