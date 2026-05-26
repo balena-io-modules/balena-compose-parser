@@ -429,6 +429,14 @@ function normalizeService(
 		}
 	}
 
+	// compose-go normalizes extra_hosts to `host=ip`, but our Engine expects `host:ip`
+	// as does latest Moby. Convert the separator back.
+	if (service.extra_hosts) {
+		service.extra_hosts = service.extra_hosts.map((entry) =>
+			entry.replace('=', ':'),
+		);
+	}
+
 	// Delete label_file, as compose-go adds label_file labels to service.labels
 	delete service.label_file;
 
@@ -515,6 +523,15 @@ function normalizeServiceBuild(
 		build.context =
 			path.relative(path.dirname(composeFilePath), build.context) || '.';
 	}
+
+	// compose-go normalizes extra_hosts to `host=ip`, but our Engine expects `host:ip`
+	// as does latest Moby. Convert the separator back.
+	if (build.extra_hosts) {
+		build.extra_hosts = build.extra_hosts.map((entry) =>
+			entry.replace('=', ':'),
+		);
+	}
+
 	return build;
 }
 
