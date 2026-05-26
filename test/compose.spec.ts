@@ -87,7 +87,7 @@ describe('compose-go parsing & validation', () => {
 							ENV_TWO: 'val_two',
 							ENV_THREE: 'val_three',
 						},
-						extra_hosts: ['foo=127.0.0.1'],
+						extra_hosts: ['foo:127.0.0.1'],
 						volumes: ['v2:/v2:ro'],
 					},
 					s3: {
@@ -97,7 +97,7 @@ describe('compose-go parsing & validation', () => {
 							default: null,
 						},
 						ports: ['1000', '1001:1002', '1003:1004'],
-						extra_hosts: ['bar=8.8.8.8'],
+						extra_hosts: ['bar:8.8.8.8'],
 						tmpfs: ['/tmp1', '/tmp2'],
 						volumes: ['v1:/v1'],
 					},
@@ -227,7 +227,7 @@ describe('compose-go parsing & validation', () => {
 						environment: {
 							ENV_TEST: 'true',
 						},
-						extra_hosts: ['host1=127.0.0.1', 'host2=127.0.0.2'],
+						extra_hosts: ['host1:127.0.0.1', 'host2:127.0.0.2'],
 						group_add: ['mail', '1111'],
 						healthcheck: {
 							test: ['CMD', 'curl', '-f', 'http://localhost:8080'],
@@ -314,7 +314,7 @@ describe('compose-go parsing & validation', () => {
 						environment: {
 							ENV_TEST_2: 'true',
 						},
-						extra_hosts: ['host3=127.0.0.3', 'host4=127.0.0.4'],
+						extra_hosts: ['host3:127.0.0.3', 'host4:127.0.0.4'],
 						ipc: 'shareable',
 						labels: {
 							'com.example.label3': 'value3',
@@ -1492,7 +1492,7 @@ describe('compose-go parsing & validation', () => {
 								ARG2: 'value2',
 							},
 							cache_from: ['my_cache', 'my_cache2'],
-							extra_hosts: ['host1=127.0.0.1', 'host2=127.0.0.2'],
+							extra_hosts: ['host1:127.0.0.1', 'host2:127.0.0.2'],
 							labels: {
 								'com.example.label': 'value',
 								'com.example.label2': 'value2',
