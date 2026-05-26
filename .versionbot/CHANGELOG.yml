@@ -1,4 +1,17 @@
 - commits:
+    - subject: Convert extra_hosts separator from `=` to `:`
+      hash: 678977848f826a1b4acde8d049fe935b2a06a110
+      body: |
+        compose-go normalises extra_hosts to `=` separator,
+        however neither Moby nor balenaEngine support =, both expect :.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+  version: 0.2.5
+  title: ""
+  date: 2026-05-26T20:17:08.893Z
+- commits:
     - subject: Coerce env var values to empty string
       hash: 1aad1a29813abde6785e3b546e4def6df62c59dd
       body: |
