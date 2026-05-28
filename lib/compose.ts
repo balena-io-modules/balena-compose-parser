@@ -293,11 +293,31 @@ function normalizeService(
 		);
 	}
 
-	// Reject all security_opt settings except no-new-privileges
-	if (service.security_opt?.some((opt) => !opt.match('no-new-privileges'))) {
+	// Reject all security_opt settings except no-new-privileges, unconfined apparmor/seccomp.
+	// compose-go preserves the original separator, which can be `:` or `=`, so accept both.
+	// Note: `systempaths=unconfined` is intentionally not allowed, as balenaEngine
+	// does not handle it in parseSecurityOpt and rejects container creation.
+	const allowedSecurityOpts = [
+		/^no-new-privileges([:=].*)?$/,
+		/^apparmor[:=]unconfined$/,
+		/^seccomp[:=]unconfined$/,
+	];
+	if (
+		service.security_opt?.some(
+			(opt) => !allowedSecurityOpts.some((re) => re.test(opt)),
+		)
+	) {
 		throw new ServiceError(
-			'Only no-new-privileges is allowed for service.security_opt',
+			'Only no-new-privileges and unconfined apparmor and seccomp are allowed for service.security_opt',
 			serviceName,
+		);
+	}
+
+	// Normalize the security_opt separator to `=`. Moby and balenaEngine parse
+	// `key=value`, and treat `key:value` as accepted but deprecated.
+	if (service.security_opt) {
+		service.security_opt = service.security_opt.map((opt) =>
+			opt.replace(':', '='),
 		);
 	}
 

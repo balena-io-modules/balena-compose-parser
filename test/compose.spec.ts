@@ -1021,21 +1021,32 @@ describe('compose-go parsing & validation', () => {
 			});
 		});
 
-		it('should reject all security_opt settings except no-new-privileges', async () => {
+		it('should reject unsupported security_opt settings', async () => {
 			try {
 				await parse(
 					'test/fixtures/compose/services/unsupported/security_opt_unsupported.yml',
 				);
 				expect.fail(
-					'Expected compose parser to reject security_opt settings except no-new-privileges',
+					'Expected compose parser to reject unsupported security_opt settings',
 				);
 			} catch (error) {
 				expect(error).to.be.instanceOf(ServiceError);
 				expect(error.serviceName).to.equal('main');
 				expect(error.message).to.equal(
-					'Only no-new-privileges is allowed for service.security_opt',
+					'Only no-new-privileges and unconfined apparmor and seccomp are allowed for service.security_opt',
 				);
 			}
+		});
+
+		it('should allow no-new-privileges and unconfined apparmor and seccomp in security_opt, normalizing the separator to `=`', async () => {
+			const composition = await parse(
+				'test/fixtures/compose/services/security_opt_supported.yml',
+			);
+			expect(composition.services.main.security_opt).to.deep.equal([
+				'no-new-privileges=true',
+				'apparmor=unconfined',
+				'seccomp=unconfined',
+			]);
 		});
 
 		it('should reject volumes of type bind', async () => {

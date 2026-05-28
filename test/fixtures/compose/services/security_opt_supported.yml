@@ -1,0 +1,8 @@
+services:
+  main:
+    image: alpine:latest
+    command: sh -c "sleep infinity"
+    security_opt:
+      - no-new-privileges:true
+      - apparmor=unconfined
+      - seccomp:unconfined
