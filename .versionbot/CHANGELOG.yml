@@ -1,4 +1,19 @@
 - commits:
+    - subject: Support apparmor/seccomp=unconfined for security_opt
+      hash: 8b8f9c20f451d078c715d3a7cc55df0611efef8c
+      body: |
+        These opts are used for balena-on-balena, and although
+        balenaOS does not support them as of v7 launch, they are
+        desireable in a hardened balenaOS so we would like to add them
+        down the line.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+  version: 0.2.6
+  title: ""
+  date: 2026-05-28T19:39:15.869Z
+- commits:
     - subject: Convert extra_hosts separator from `=` to `:`
       hash: 678977848f826a1b4acde8d049fe935b2a06a110
       body: |
