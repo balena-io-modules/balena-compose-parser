@@ -9,7 +9,6 @@ services:
       - label:role:balena
       - label:disable
       - apparmor:MY_PROFILE
-      - seccomp:unconfined
       - seccomp:builtin
       - seccomp:profile.json
       - systempaths:unconfined
