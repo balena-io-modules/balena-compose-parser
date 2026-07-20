@@ -120,10 +120,7 @@ interface ServiceImageMount extends ServiceVolumeBase {
 }
 
 export type ServiceVolumeConfig =
-	| ServiceBindMount
-	| ServiceVolumeMount
-	| ServiceTmpfsMount
-	| ServiceImageMount;
+	ServiceBindMount | ServiceVolumeMount | ServiceTmpfsMount | ServiceImageMount;
 
 export interface BuildConfig {
 	additional_contexts?: Dict<string>; // Normalized from ListOrDict<string>
@@ -244,7 +241,7 @@ export interface Service {
 	post_start?: LifecycleHook[];
 	pre_stop?: LifecycleHook[];
 	privileged?: boolean;
-	// profiles?: string[]; While a field in the raw yaml file, this isn't included in the parsed composition
+	profiles?: string[];
 	pull_policy?: string;
 	read_only?: boolean;
 	restart?: string;
