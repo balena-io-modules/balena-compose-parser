@@ -1,4 +1,23 @@
 - commits:
+    - subject: Support service.profiles
+      hash: ffe4911efbb30dfc0bc0746354ad9e46a491dc62
+      body: |
+        Profiles were previously dropped by compose-go. compose-go does have
+        composition filtering using `cli.withProfiles` which we don't want,
+        as the API should be filtering profiles in target state for runtime
+        activation.
+
+        Enable the "*" wildcard so every profiled service is kept and its
+        `profiles` field is marshaled, surface it on the Service type, and
+        validate profile names against the Docker profile name format.
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Christina Ying Wang
+  version: 0.3.0
+  title: ""
+  date: 2026-07-21T11:39:29.861Z
+- commits:
     - subject: Support apparmor/seccomp=unconfined for security_opt
       hash: 8b8f9c20f451d078c715d3a7cc55df0611efef8c
       body: |
