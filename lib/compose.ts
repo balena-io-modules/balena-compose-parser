@@ -218,10 +218,6 @@ export const SERVICE_CONFIG_DENY_LIST = [
 	'memswap_limit',
 	'oom_kill_disable',
 	'platform',
-	// TODO: Currently compose-go does not include a service with profiles set if they're not specified in COMPOSE_PROFILES,
-	// so a composition with profiles doesn't actually reject as the profiles are not added to the parsed compose by compose-go.
-	// We should support profiles which will involve modifying this code, but in dedicated shaping + building cycles.
-	// 'profiles',
 	'pull_policy',
 	'runtime',
 	'scale',
@@ -231,6 +227,8 @@ export const SERVICE_CONFIG_DENY_LIST = [
 ];
 
 const OOM_SCORE_ADJ_WARN_THRESHOLD = -900;
+
+const PROFILE_NAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9_.-]+$/;
 
 const bindMountByLabel: Array<[string, string[]]> = [
 	['io.balena.features.balena-socket', ['/var/run/docker.sock']],
@@ -261,6 +259,17 @@ function normalizeService(
 	for (const field of SERVICE_CONFIG_DENY_LIST) {
 		if (field in service) {
 			throw new ServiceError(`service.${field} is not allowed`, serviceName);
+		}
+	}
+
+	if (service.profiles != null) {
+		for (const profile of service.profiles) {
+			if (!PROFILE_NAME_REGEX.test(profile)) {
+				throw new ServiceError(
+					`service.profiles "${profile}" is not a valid profile name`,
+					serviceName,
+				);
+			}
 		}
 	}
 

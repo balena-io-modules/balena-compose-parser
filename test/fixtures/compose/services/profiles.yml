@@ -1,0 +1,8 @@
+services:
+  main:
+    image: alpine
+  debug:
+    image: busybox
+    profiles:
+      - debug
+      - trace-2.0

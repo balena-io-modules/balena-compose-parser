@@ -90,6 +90,9 @@ func main() {
 		cli.WithOsEnv,
 		cli.WithDotEnv,
 		cli.WithName(projectName),
+		// "*" keeps profiled services in the output; compose-go otherwise
+		// filters them out and only marshals `profiles` for enabled services.
+		cli.WithProfiles([]string{"*"}),
 	)
 	if err != nil {
 		outputError("ConfigError", fmt.Sprintf("Failed to create compose project options: %v", err))

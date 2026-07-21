@@ -1049,6 +1049,33 @@ describe('compose-go parsing & validation', () => {
 			]);
 		});
 
+		it('should preserve profiles on services that declare them', async () => {
+			const composition = await parse(
+				'test/fixtures/compose/services/profiles.yml',
+			);
+			// Services with profiles must be kept, not filtered out by compose-go
+			expect(composition.services.main.profiles).to.equal(undefined);
+			expect(composition.services.debug.profiles).to.deep.equal([
+				'debug',
+				'trace-2.0',
+			]);
+		});
+
+		it('should reject invalid profile names', async () => {
+			try {
+				await parse(
+					'test/fixtures/compose/services/unsupported/profiles_invalid.yml',
+				);
+				expect.fail('Expected compose parser to reject invalid profile names');
+			} catch (error) {
+				expect(error).to.be.instanceOf(ServiceError);
+				expect(error.serviceName).to.equal('main');
+				expect(error.message).to.equal(
+					'service.profiles "invalid profile!" is not a valid profile name',
+				);
+			}
+		});
+
 		it('should reject volumes of type bind', async () => {
 			try {
 				await parse(
