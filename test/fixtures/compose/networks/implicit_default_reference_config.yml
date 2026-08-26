@@ -1,0 +1,9 @@
+services:
+  main:
+    image: alpine:latest
+    networks:
+      default:
+        aliases:
+          - main-alias
+  other:
+    image: alpine:latest

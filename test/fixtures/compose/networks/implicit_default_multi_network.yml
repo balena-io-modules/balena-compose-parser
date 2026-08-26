@@ -1,0 +1,10 @@
+services:
+  main:
+    image: alpine:latest
+    networks:
+      - default
+      - other
+  solo:
+    image: alpine:latest
+networks:
+  other:

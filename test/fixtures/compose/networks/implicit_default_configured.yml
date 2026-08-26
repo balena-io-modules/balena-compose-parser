@@ -1,0 +1,7 @@
+services:
+  main:
+    image: alpine:latest
+networks:
+  default:
+    driver_opts:
+      com.docker.network.bridge.name: mybridge
