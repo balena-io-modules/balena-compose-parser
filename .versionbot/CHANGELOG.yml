@@ -1,4 +1,34 @@
 - commits:
+    - subject: Remove the implicit default network from the composition
+      hash: 71edc6f45eb0f87b0ea09fa0344e3105dfc3e21f
+      body: >
+        compose-go adds the `default` network to the composition and attaches
+        every
+
+        service that doesn't declare its own `networks`. The Supervisor already
+        does
+
+        this itself, so we just strip it back out.
+
+
+        We only remove what compose-go added: if the `default` network or a
+        service's
+
+        reference to it carries any config of its own, we leave it alone. The
+        same
+
+        goes for a service listing `default` next to other networks, since
+        compose-go
+
+        only injects into services with no `networks` key at all.
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Christina Ying Wang
+  version: 0.4.0
+  title: ""
+  date: 2026-09-02T13:18:20.350Z
+- commits:
     - subject: Support service.profiles
       hash: ffe4911efbb30dfc0bc0746354ad9e46a491dc62
       body: |
