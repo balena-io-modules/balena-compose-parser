@@ -134,6 +134,9 @@ function normalize(
 	// names of networks and volumes by compose-go, so must be removed without rejecting.
 	removeProjectName(rawComposition);
 
+	// compose-go adds an implicit `default` network, which balena re-derives anyway.
+	removeImplicitDefaultNetwork(rawComposition);
+
 	// Reject top-level secrets & configs
 	if (rawComposition.secrets || rawComposition.configs) {
 		throw new ValidationError(
@@ -172,6 +175,62 @@ function normalize(
 	}
 
 	return composition;
+}
+
+/**
+ * Remove the `default` network compose-go adds, along with the references to it.
+ * The Supervisor and helios both attach services without a `networks` key to `default`
+ * and create the network themselves, so carrying it here is redundant. Entries with
+ * config of their own are left alone.
+ * @param composition - Composition object to remove the default network from
+ */
+function removeImplicitDefaultNetwork(composition: Dict<any>) {
+	const services: Dict<any> = composition.services ?? {};
+
+	// A configured `default` network must keep the services attached to it
+	if (
+		composition.networks?.default != null &&
+		!isUnconfigured(composition.networks.default)
+	) {
+		return;
+	}
+
+	for (const service of Object.values(services)) {
+		// compose-go only injects into a service with no networks, so `default` alongside
+		// others was asked for
+		if (
+			service.networks == null ||
+			Object.keys(service.networks).length !== 1 ||
+			!('default' in service.networks) ||
+			!isUnconfigured(service.networks.default)
+		) {
+			continue;
+		}
+		delete service.networks;
+	}
+
+	// compose-go only introduces the top-level `default` if a service references it
+	const defaultInUse = Object.values(services).some(
+		(service) => service.networks != null && 'default' in service.networks,
+	);
+	if (!defaultInUse && composition.networks != null) {
+		delete composition.networks.default;
+		if (Object.keys(composition.networks).length === 0) {
+			delete composition.networks;
+		}
+	}
+}
+
+/**
+ * Whether a network or service network reference carries no configuration of its own.
+ * compose-go expands a bare network to an empty `ipam`, and a bare reference to null.
+ * @param config - Network or service network reference to check
+ */
+function isUnconfigured(config: Dict<any> | null | undefined): boolean {
+	return Object.entries(config ?? {}).every(
+		([key, value]) =>
+			key === 'ipam' && Object.keys((value as Dict<any>) ?? {}).length === 0,
+	);
 }
 
 /**

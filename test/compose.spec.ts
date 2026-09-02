@@ -59,9 +59,6 @@ describe('compose-go parsing & validation', () => {
 							dockerfile: 'Dockerfile',
 						},
 						command: null,
-						networks: {
-							default: null,
-						},
 						ports: ['80:5000'],
 						depends_on: ['s3'],
 						environment: {
@@ -76,9 +73,6 @@ describe('compose-go parsing & validation', () => {
 							dockerfile: 'Dockerfile',
 						},
 						command: null,
-						networks: {
-							default: null,
-						},
 						depends_on: ['s1', 's3'],
 						privileged: true,
 						environment: {
@@ -93,9 +87,6 @@ describe('compose-go parsing & validation', () => {
 					s3: {
 						image: 'some/image',
 						command: null,
-						networks: {
-							default: null,
-						},
 						ports: ['1000', '1001:1002', '1003:1004'],
 						extra_hosts: ['bar:8.8.8.8'],
 						tmpfs: ['/tmp1', '/tmp2'],
@@ -104,9 +95,6 @@ describe('compose-go parsing & validation', () => {
 					s4: {
 						image: 'some/image',
 						command: null,
-						networks: {
-							default: null,
-						},
 						labels: {
 							'io.balena.features.balena-socket': '1',
 							'io.balena.features.dbus': '1',
@@ -119,9 +107,6 @@ describe('compose-go parsing & validation', () => {
 					},
 				},
 				networks: {
-					default: {
-						ipam: {},
-					},
 					n1: {
 						ipam: {},
 					},
@@ -247,9 +232,6 @@ describe('compose-go parsing & validation', () => {
 						mac_address: '02:42:ac:11:00:02',
 						mem_limit: '1073741824',
 						mem_reservation: '536870912',
-						networks: {
-							default: null,
-						},
 						pids_limit: 50,
 						post_start: [
 							{
@@ -320,20 +302,12 @@ describe('compose-go parsing & validation', () => {
 							'com.example.label3': 'value3',
 							'com.example.label4': 'value4',
 						},
-						networks: {
-							default: null,
-						},
 						// pids_limit: -1, // Not yet supported by Supervisor
 						shm_size: '1073741824',
 						sysctls: {
 							'net.ipv4.ip_forward': '1',
 							'kernel.msgmax': '65536',
 						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -378,14 +352,6 @@ describe('compose-go parsing & validation', () => {
 						labels: {
 							'io.balena.private.foo': 'bar',
 						},
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -445,14 +411,6 @@ describe('compose-go parsing & validation', () => {
 							UNSET_A: '',
 							UNSET_B: '',
 						},
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -473,14 +431,6 @@ describe('compose-go parsing & validation', () => {
 							NULL_DICT_FORM: '',
 							UNDEFINED_FORM: '',
 						},
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -499,9 +449,6 @@ describe('compose-go parsing & validation', () => {
 							TZ: 'utc',
 						},
 						command: null,
-						networks: {
-							default: null,
-						},
 					},
 					cli: {
 						image: 'busybox',
@@ -510,9 +457,6 @@ describe('compose-go parsing & validation', () => {
 							TZ: 'utc',
 						},
 						command: null,
-						networks: {
-							default: null,
-						},
 					},
 					web: {
 						image: 'nginx:latest',
@@ -521,14 +465,6 @@ describe('compose-go parsing & validation', () => {
 							ENV_TEST_2: 'true',
 						},
 						command: null,
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -558,21 +494,10 @@ describe('compose-go parsing & validation', () => {
 						command: ['sh', '-c', 'sleep infinity'],
 						ipc: 'service:one',
 						depends_on: ['one'],
-						networks: {
-							default: null,
-						},
 					},
 					one: {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -588,14 +513,6 @@ describe('compose-go parsing & validation', () => {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
 						ipc: 'host',
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -630,14 +547,6 @@ describe('compose-go parsing & validation', () => {
 							'io.balena.test.a': 'true',
 							'io.balena.test.b': 'true',
 						},
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -786,22 +695,11 @@ describe('compose-go parsing & validation', () => {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
 						oom_score_adj: -900,
-						networks: {
-							default: null,
-						},
 					},
 					two: {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
 						oom_score_adj: 1000,
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -817,29 +715,15 @@ describe('compose-go parsing & validation', () => {
 						command: ['sh', '-c', 'sleep infinity'],
 						pid: 'service:one',
 						depends_on: ['one'],
-						networks: {
-							default: null,
-						},
 					},
 					one: {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
-						networks: {
-							default: null,
-						},
 					},
 					host: {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
 						pid: 'host',
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -898,22 +782,11 @@ describe('compose-go parsing & validation', () => {
 							'::1:6001:6001',
 							'6060:6060/udp',
 						],
-						networks: {
-							default: null,
-						},
 					},
 					long: {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
 						ports: ['127.0.0.1:9090:9090', '127.0.0.2:9091:9091/udp'],
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -939,14 +812,6 @@ describe('compose-go parsing & validation', () => {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
 						ports: ['80:80'],
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -976,46 +841,26 @@ describe('compose-go parsing & validation', () => {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
 						restart: 'always',
-						networks: {
-							default: null,
-						},
 					},
 					one: {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
 						restart: 'on-failure',
-						networks: {
-							default: null,
-						},
 					},
 					two: {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
 						restart: 'no',
-						networks: {
-							default: null,
-						},
 					},
 					three: {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
 						restart: 'unless-stopped',
-						networks: {
-							default: null,
-						},
 					},
 					four: {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
 						restart: 'on-failure:3',
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -1237,14 +1082,6 @@ describe('compose-go parsing & validation', () => {
 							'io.balena.features.firmware': '1',
 							'io.balena.features.journal-logs': '1',
 						},
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -1260,18 +1097,10 @@ describe('compose-go parsing & validation', () => {
 					main: {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
-						networks: {
-							default: null,
-						},
 						labels: {
 							// balena-socket only requires that one of either bind mount be present
 							'io.balena.features.balena-socket': '1',
 						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -1287,14 +1116,6 @@ describe('compose-go parsing & validation', () => {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
 						volumes: ['vol1:/data', 'vol2:/run:ro', 'vol3:/app'],
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 				volumes: {
@@ -1349,14 +1170,6 @@ describe('compose-go parsing & validation', () => {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
 						tmpfs: ['/tmp:mode=755,uid=1000,gid=1000,size=100m'],
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -1373,22 +1186,11 @@ describe('compose-go parsing & validation', () => {
 						command: ['sh', '-c', 'sleep infinity'],
 						volumes_from: ['two:ro'],
 						depends_on: ['two'],
-						networks: {
-							default: null,
-						},
 					},
 					two: {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
 						volumes: ['test:/test'],
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 				volumes: {
@@ -1428,14 +1230,6 @@ describe('compose-go parsing & validation', () => {
 							tags: ['alpine:latest'],
 						},
 						command: ['sh', '-c', 'sleep infinity'],
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -1454,14 +1248,6 @@ describe('compose-go parsing & validation', () => {
 					main: {
 						image: 'alpine:latest',
 						command: ['sleep', 'infinity'],
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -1539,14 +1325,6 @@ describe('compose-go parsing & validation', () => {
 							target: 'my_target',
 						},
 						command: ['sleep', 'infinity'],
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -1564,9 +1342,6 @@ describe('compose-go parsing & validation', () => {
 							dockerfile: 'Dockerfile.main',
 						},
 						command: ['sleep', 'infinity'],
-						networks: {
-							default: null,
-						},
 					},
 					one: {
 						build: {
@@ -1574,9 +1349,6 @@ describe('compose-go parsing & validation', () => {
 							dockerfile: 'Dockerfile.one',
 						},
 						command: ['sleep', 'infinity'],
-						networks: {
-							default: null,
-						},
 					},
 					two: {
 						build: {
@@ -1584,9 +1356,6 @@ describe('compose-go parsing & validation', () => {
 							dockerfile: 'Dockerfile.two',
 						},
 						command: ['sleep', 'infinity'],
-						networks: {
-							default: null,
-						},
 					},
 					three: {
 						build: {
@@ -1594,14 +1363,6 @@ describe('compose-go parsing & validation', () => {
 							dockerfile: 'Dockerfile.three',
 						},
 						command: ['sleep', 'infinity'],
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -1661,14 +1422,6 @@ describe('compose-go parsing & validation', () => {
 							},
 						},
 						command: null,
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -1795,6 +1548,107 @@ describe('compose-go parsing & validation', () => {
 			}
 		});
 
+		it('should remove the implicit default network', async () => {
+			const composition = await parse(
+				'test/fixtures/compose/networks/implicit_default.yml',
+			);
+			expect(composition).to.deep.equal({
+				services: {
+					main: {
+						command: null,
+						image: 'alpine:latest',
+					},
+					other: {
+						command: null,
+						image: 'alpine:latest',
+					},
+				},
+			});
+		});
+
+		it('should keep a default network which declares its own config', async () => {
+			const composition = await parse(
+				'test/fixtures/compose/networks/implicit_default_configured.yml',
+			);
+			expect(composition).to.deep.equal({
+				services: {
+					main: {
+						command: null,
+						image: 'alpine:latest',
+						networks: {
+							default: null,
+						},
+					},
+				},
+				networks: {
+					default: {
+						driver_opts: {
+							'com.docker.network.bridge.name': 'mybridge',
+						},
+						ipam: {},
+					},
+				},
+			});
+		});
+
+		it('should keep a default network listed alongside other networks', async () => {
+			const composition = await parse(
+				'test/fixtures/compose/networks/implicit_default_multi_network.yml',
+			);
+			expect(composition).to.deep.equal({
+				services: {
+					main: {
+						command: null,
+						image: 'alpine:latest',
+						networks: {
+							default: null,
+							other: null,
+						},
+					},
+					solo: {
+						command: null,
+						image: 'alpine:latest',
+					},
+				},
+				networks: {
+					default: {
+						ipam: {},
+					},
+					other: {
+						ipam: {},
+					},
+				},
+			});
+		});
+
+		it('should keep default network references which declare their own config', async () => {
+			const composition = await parse(
+				'test/fixtures/compose/networks/implicit_default_reference_config.yml',
+			);
+			expect(composition).to.deep.equal({
+				services: {
+					main: {
+						command: null,
+						image: 'alpine:latest',
+						networks: {
+							default: {
+								aliases: ['main-alias'],
+							},
+						},
+					},
+					other: {
+						command: null,
+						image: 'alpine:latest',
+					},
+				},
+				networks: {
+					default: {
+						ipam: {},
+					},
+				},
+			});
+		});
+
 		it('should warn if com.docker.network.bridge.name driver_opts is present', async () => {
 			await parse('test/fixtures/compose/networks/driver_opt_bridge_name.yml');
 			expect(warnStub.callCount).to.equal(1);
@@ -1917,9 +1771,6 @@ describe('compose-go parsing & validation', () => {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
 						volumes: ['my_volume:/app'],
-						networks: {
-							default: null,
-						},
 					},
 				},
 				volumes: {
@@ -1935,11 +1786,6 @@ describe('compose-go parsing & validation', () => {
 						},
 					},
 				},
-				networks: {
-					default: {
-						ipam: {},
-					},
-				},
 			});
 		});
 
@@ -1951,18 +1797,10 @@ describe('compose-go parsing & validation', () => {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
 						volumes: ['my-volume:/data'],
-						networks: {
-							default: null,
-						},
 					},
 				},
 				volumes: {
 					'my-volume': {},
-				},
-				networks: {
-					default: {
-						ipam: {},
-					},
 				},
 			});
 		});
@@ -2005,15 +1843,7 @@ describe('compose-go parsing & validation', () => {
 					main: {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
-						networks: {
-							default: null,
-						},
 						volumes: ['my_volume:/app'],
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 				volumes: {
@@ -2085,14 +1915,6 @@ describe('compose-go parsing & validation', () => {
 						healthcheck: {
 							test: ['CMD', 'curl', '-f', 'http://localhost:3001'],
 						},
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -2134,18 +1956,12 @@ describe('compose-go parsing & validation', () => {
 							POSTGRES_USER: 'user',
 							POSTGRES_PASSWORD: 'pass',
 						},
-						networks: {
-							default: null,
-						},
 					},
 					cache: {
 						image: 'redis:6',
 						command: ['sh', '-c', 'sleep infinity'],
 						labels: {
 							'io.balena.test.tier': 'backend',
-						},
-						networks: {
-							default: null,
 						},
 					},
 				},
@@ -2156,9 +1972,6 @@ describe('compose-go parsing & validation', () => {
 							'io.balena.test.network': 'frontend2',
 							'io.balena.test.network2': 'frontend',
 						},
-					},
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -2181,9 +1994,6 @@ describe('compose-go parsing & validation', () => {
 						depends_on: ['cache', 'db'],
 						tmpfs: ['/tmp', '/run'],
 						devices: ['/dev/sdb:/dev/sdb:rw'],
-						networks: {
-							default: null,
-						},
 					},
 					db: {
 						image: 'postgres:13',
@@ -2192,21 +2002,10 @@ describe('compose-go parsing & validation', () => {
 							POSTGRES_DB: 'mydb',
 							POSTGRES_DB_2: 'mydb2',
 						},
-						networks: {
-							default: null,
-						},
 					},
 					cache: {
 						image: 'redis:6',
 						command: ['sh', '-c', 'sleep infinity'],
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -2226,19 +2025,11 @@ describe('compose-go parsing & validation', () => {
 						command: null,
 						ports: ['3000:3000', '80:80/udp', '3000:3000/udp', '80:80'],
 						volumes: ['static-data:/html', 'web-data:/static'],
-						networks: {
-							default: null,
-						},
 					},
 				},
 				volumes: {
 					'web-data': {},
 					'static-data': {},
-				},
-				networks: {
-					default: {
-						ipam: {},
-					},
 				},
 			});
 		});
@@ -2255,14 +2046,6 @@ describe('compose-go parsing & validation', () => {
 					app: {
 						image: 'myapp',
 						command: null,
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -2281,14 +2064,6 @@ describe('compose-go parsing & validation', () => {
 						image: 'myapp',
 						command: null,
 						ports: ['8443:443'],
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -2322,9 +2097,6 @@ describe('compose-go parsing & validation', () => {
 							DEMO_VAR: 'value3',
 						},
 						dns: ['1.1.1.1', '1.0.0.1'],
-						networks: {
-							default: null,
-						},
 					},
 					second: {
 						image: 'alpine:latest',
@@ -2335,9 +2107,6 @@ describe('compose-go parsing & validation', () => {
 							DEMO_VAR: 'value3',
 						},
 						dns: ['1.1.1.1', '1.0.0.1'],
-						networks: {
-							default: null,
-						},
 					},
 				},
 				volumes: {
@@ -2352,11 +2121,6 @@ describe('compose-go parsing & validation', () => {
 							'io.balena.test': 'false',
 							'io.balena.test2': 'true',
 						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -2378,9 +2142,6 @@ describe('compose-go parsing & validation', () => {
 						annotations: {
 							'io.balena.test': 'true',
 						},
-						networks: {
-							default: null,
-						},
 					},
 					second: {
 						image: 'another-image:latest',
@@ -2392,9 +2153,6 @@ describe('compose-go parsing & validation', () => {
 						annotations: {
 							'io.balena.test': 'true',
 						},
-						networks: {
-							default: null,
-						},
 					},
 					third: {
 						image: 'my-image:latest',
@@ -2404,14 +2162,6 @@ describe('compose-go parsing & validation', () => {
 							KEY2: 'VALUE2',
 							YET_ANOTHER: 'VARIABLE',
 						},
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -2426,18 +2176,12 @@ describe('compose-go parsing & validation', () => {
 						image: 'alpine:latest',
 						command: null,
 						depends_on: ['child'],
-						networks: {
-							default: null,
-						},
 					},
 					child: {
 						image: 'alpine:latest',
 						command: null,
 						environment: {
 							CHILD_VAR: 'child_value',
-						},
-						networks: {
-							default: null,
 						},
 					},
 					child2: {
@@ -2447,9 +2191,6 @@ describe('compose-go parsing & validation', () => {
 							CHILD2_VAR: 'child2_value',
 							CHILD2_VAR2: 'child2_value2',
 						},
-						networks: {
-							default: null,
-						},
 					},
 					child3: {
 						image: 'alpine:latest',
@@ -2457,14 +2198,6 @@ describe('compose-go parsing & validation', () => {
 						environment: {
 							CHILD3_VAR: 'child3_value',
 						},
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -2494,14 +2227,6 @@ describe('compose-go parsing & validation', () => {
 							VALUE_FROM_DOTENV: '', // 'value_from_dotenv', // TODO: vars from .env in working directory are not being picked up
 						},
 						ports: ['8080:8080'],
-						networks: {
-							default: null,
-						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
@@ -2522,19 +2247,11 @@ describe('compose-go parsing & validation', () => {
 					main: {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
-						networks: {
-							default: null,
-						},
 						labels: {
 							'io.balena.features.requires.sw.arch': 'amd64',
 							'io.balena.features.requires.sw.supervisor': '16.0.0',
 							'io.balena.features.requires.sw.l4t': '3.10',
 						},
-					},
-				},
-				networks: {
-					default: {
-						ipam: {},
 					},
 				},
 			});
