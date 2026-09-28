@@ -1,4 +1,4 @@
-import { execFile as execFileSync } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { randomUUID } from 'crypto';
 import * as path from 'path';
@@ -23,7 +23,7 @@ import type {
 	ImageDescriptor,
 } from './types';
 
-const execFile = promisify(execFileSync);
+const execFileAsync = promisify(execFile);
 
 /**
  * Parse one or more compose files using compose-go, and return a normalized composition object
@@ -59,7 +59,7 @@ export async function parse(
 			? 'balena-compose-parser.exe'
 			: 'balena-compose-parser';
 	const binaryPath = path.join(__dirname, '..', 'bin', binaryName);
-	const result = await execFile(binaryPath, args, {
+	const result = await execFileAsync(binaryPath, args, {
 		env: process.env,
 	}).catch((e) => {
 		// If exec error has stdout/stderr, handle them later; otherwise throw immediately
