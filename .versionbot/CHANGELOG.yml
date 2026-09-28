@@ -1,4 +1,17 @@
 - commits:
+    - subject: Clarify execFileSync vs execFile
+      hash: 7d8fe6852436d6068de6829d0b23658c9e3ac2cc
+      body: |
+        execFile is async with callback, but not promisified,
+        whereas execFileSync is synchronous & blocking
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+  version: 0.4.1
+  title: ""
+  date: 2026-09-28T21:59:26.928Z
+- commits:
     - subject: Remove the implicit default network from the composition
       hash: 71edc6f45eb0f87b0ea09fa0344e3105dfc3e21f
       body: >
