@@ -2212,6 +2212,7 @@ describe('compose-go parsing & validation', () => {
 
 			const composition = await parse(
 				'test/fixtures/compose/interpolation/compose.yml',
+				{ hostEnvironment: true },
 			);
 
 			expect(composition).to.deep.equal({

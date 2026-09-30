@@ -1,4 +1,5 @@
 import { parse, toImageDescriptors } from './compose';
+import type { ParseOptions } from './compose';
 import { createContractFromLabels } from './contracts';
 import type { ContractParser } from './contracts';
 import {
@@ -35,4 +36,4 @@ export {
 	ValidationError,
 	ArgumentError,
 };
-export type { ContractParser };
+export type { ContractParser, ParseOptions };
