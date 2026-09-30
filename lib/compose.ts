@@ -25,14 +25,32 @@ import type {
 
 const execFileAsync = promisify(execFile);
 
+export interface ParseOptions {
+	/**
+	 * Let the compose file read our environment. Off by default, since a compose
+	 * file can name any variable we hold and have the value copied out. Only turn
+	 * it on when the environment belongs to whoever wrote the file.
+	 */
+	hostEnvironment?: boolean;
+
+	/**
+	 * Leave `${VAR}` references verbatim. Used by the builder, which re-parses a
+	 * compose file the CLI has already interpolated.
+	 */
+	skipInterpolation?: boolean;
+}
+
 /**
  * Parse one or more compose files using compose-go, and return a normalized composition object
  * @param composeFilePaths - Path(s) to the compose file(s) to parse. Can be a single string or an array of strings.
+ * @param options - See {@link ParseOptions}
  * @returns Normalized composition object
  */
 export async function parse(
 	composeFilePaths: string | string[],
+	options: ParseOptions = {},
 ): Promise<Composition> {
+	const { hostEnvironment = false, skipInterpolation = false } = options;
 	// Normalize input to always be an array
 	const filePaths = Array.isArray(composeFilePaths)
 		? composeFilePaths
@@ -51,6 +69,8 @@ export async function parse(
 	// quoting issues when the binary path or compose file paths contain spaces
 	const args = [
 		...filePaths.flatMap((filePath) => ['-f', filePath]),
+		...(skipInterpolation ? ['--skip-interpolation'] : []),
+		...(hostEnvironment ? ['--host-env'] : []),
 		projectName,
 	];
 
@@ -60,7 +80,8 @@ export async function parse(
 			: 'balena-compose-parser';
 	const binaryPath = path.join(__dirname, '..', 'bin', binaryName);
 	const result = await execFileAsync(binaryPath, args, {
-		env: process.env,
+		// Withhold it here too.
+		env: hostEnvironment ? process.env : {},
 	}).catch((e) => {
 		// If exec error has stdout/stderr, handle them later; otherwise throw immediately
 		if (e.stdout !== undefined && e.stderr !== undefined) {

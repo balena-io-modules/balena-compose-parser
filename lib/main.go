@@ -31,6 +31,11 @@ Arguments:
   <project-name>     Name of the project to use for the parsed output. It is recommended to use a UUID, as any fields which include
                      the project name need to be removed for normalization into a compose acceptable by balena.
 
+Flags:
+  --skip-interpolation  Leave ${VARIABLE} references verbatim instead of substituting them.
+  --host-env            Let the compose file read this process's environment. Only pass this when
+                        the environment belongs to the person who wrote the compose file.
+
 Example:
   balena-compose-parser -f docker-compose.yml -f docker-compose.override.yml my-project-name
 `
@@ -52,11 +57,17 @@ func main() {
 
 	var composeFiles []string
 	var projectName string
+	skipInterpolation := false
+	hostEnv := false
 
 	// Flags work wherever they appear, and an unknown one is an error rather than
 	// a project name.
 	for i := 1; i < len(os.Args); i++ {
 		switch arg := os.Args[i]; {
+		case arg == "--skip-interpolation":
+			skipInterpolation = true
+		case arg == "--host-env":
+			hostEnv = true
 		case arg == "-f":
 			if i+1 >= len(os.Args) {
 				outputError("ArgumentError", "Missing file path after -f flag\n"+usage)
@@ -90,15 +101,25 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	options, err := cli.NewProjectOptions(
-		composeFiles,
-		cli.WithOsEnv,
+	projectOptions := []cli.ProjectOptionsFn{}
+
+	// Off by default, since a compose file can name any variable we hold and have
+	// the value copied out. --skip-interpolation does not stop that, because a
+	// valueless `environment: [FOO]` entry is resolved by name, not substitution.
+	if hostEnv {
+		projectOptions = append(projectOptions, cli.WithOsEnv)
+	}
+
+	projectOptions = append(projectOptions,
 		cli.WithDotEnv,
 		cli.WithName(projectName),
 		// "*" keeps profiled services in the output; compose-go otherwise
 		// filters them out and only marshals `profiles` for enabled services.
 		cli.WithProfiles([]string{"*"}),
+		cli.WithInterpolation(!skipInterpolation),
 	)
+
+	options, err := cli.NewProjectOptions(composeFiles, projectOptions...)
 	if err != nil {
 		outputError("ConfigError", fmt.Sprintf("Failed to create compose project options: %v", err))
 		os.Exit(1)
