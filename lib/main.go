@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/compose-spec/compose-go/v2/cli"
@@ -52,21 +53,25 @@ func main() {
 	var composeFiles []string
 	var projectName string
 
-	// Parse command line arguments
-	i := 1
-	for i < len(os.Args) {
-		if os.Args[i] == "-f" {
+	// Flags work wherever they appear, and an unknown one is an error rather than
+	// a project name.
+	for i := 1; i < len(os.Args); i++ {
+		switch arg := os.Args[i]; {
+		case arg == "-f":
 			if i+1 >= len(os.Args) {
 				outputError("ArgumentError", "Missing file path after -f flag\n"+usage)
 				os.Exit(1)
 			}
 			composeFiles = append(composeFiles, os.Args[i+1])
-			i += 2
-		} else {
-			// The last non-flag argument should be the project name
-			projectName = os.Args[i]
 			i++
-			break
+		case strings.HasPrefix(arg, "-"):
+			outputError("ArgumentError", fmt.Sprintf("Unknown flag %s\n%s", arg, usage))
+			os.Exit(1)
+		case projectName != "":
+			outputError("ArgumentError", fmt.Sprintf("Unexpected argument %s: the project name is already %s\n%s", arg, projectName, usage))
+			os.Exit(1)
+		default:
+			projectName = arg
 		}
 	}
 
