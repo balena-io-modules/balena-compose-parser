@@ -3,12 +3,16 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"maps"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/compose-spec/compose-go/v2/cli"
+	"github.com/compose-spec/compose-go/v2/loader"
 	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/sirupsen/logrus"
 )
@@ -33,8 +37,9 @@ Arguments:
 
 Flags:
   --skip-interpolation  Leave ${VARIABLE} references verbatim instead of substituting them.
-  --host-env            Let the compose file read this process's environment. Only pass this when
-                        the environment belongs to the person who wrote the compose file.
+  --host-env            Trust the compose file, letting it read this process's environment and the
+                        files it names in env_file, label_file, include and extends.file. Only pass
+                        this for a compose file written by whoever is running us.
 
 Example:
   balena-compose-parser -f docker-compose.yml -f docker-compose.override.yml my-project-name
@@ -134,6 +139,15 @@ func main() {
 
 	// Run LoadProject in a goroutine
 	go func() {
+		// compose-go reads these files as it loads, so check first. Afterwards
+		// their contents are already in the project.
+		if !hostEnv {
+			if err := rejectSecondaryFiles(ctx, composeFiles, projectName, skipInterpolation); err != nil {
+				resultChan <- loadResult{err: err}
+				return
+			}
+		}
+
 		project, err := options.LoadProject(ctx)
 		resultChan <- loadResult{project: project, err: err}
 	}()
@@ -142,6 +156,10 @@ func main() {
 	var project *types.Project
 	select {
 	case result := <-resultChan:
+		if errors.Is(result.err, errSecondaryFile) {
+			outputError("ValidationError", result.err.Error())
+			os.Exit(1)
+		}
 		if result.err != nil {
 			outputError("ParseError", fmt.Sprintf("Failed to parse compose file: %v", result.err))
 			os.Exit(1)
@@ -161,6 +179,67 @@ func main() {
 
 	// Output the parsed project directly to stdout
 	os.Stdout.Write(projectJSON)
+}
+
+var errSecondaryFile = errors.New("secondary file references are not allowed in an untrusted compose file")
+
+// rejectSecondaryFiles errors if a compose file names a file compose-go would
+// read. SkipInclude and SkipExtends leave those keys in the model unfollowed.
+func rejectSecondaryFiles(ctx context.Context, composeFiles []string, projectName string, skipInterpolation bool) error {
+	options, err := cli.NewProjectOptions(composeFiles,
+		cli.WithName(projectName),
+		// Match the real load, or a value we leave uninterpolated can fail
+		// validation here and let the file through.
+		cli.WithInterpolation(!skipInterpolation),
+		cli.WithLoadOptions(func(o *loader.Options) {
+			o.SkipInclude = true
+			o.SkipExtends = true
+		}),
+	)
+	if err != nil {
+		return err
+	}
+
+	model, err := options.LoadModel(ctx)
+	if err != nil {
+		return err
+	}
+
+	if namesPath(model["include"]) {
+		return fmt.Errorf("%w: include", errSecondaryFile)
+	}
+
+	services, _ := model["services"].(map[string]any)
+	for _, name := range slices.Sorted(maps.Keys(services)) {
+		service, _ := services[name].(map[string]any)
+		for _, key := range []string{"env_file", "label_file"} {
+			if namesPath(service[key]) {
+				return fmt.Errorf("%w: services.%s.%s", errSecondaryFile, name, key)
+			}
+		}
+		extends, _ := service["extends"].(map[string]any)
+		if namesPath(extends["file"]) {
+			return fmt.Errorf("%w: services.%s.extends.file", errSecondaryFile, name)
+		}
+	}
+
+	return nil
+}
+
+// namesPath reports whether a field could hold a path. An empty list does not.
+func namesPath(value any) bool {
+	switch v := value.(type) {
+	case nil:
+		return false
+	case string:
+		return v != ""
+	case []any:
+		return len(v) > 0
+	case map[string]any:
+		return len(v) > 0
+	default:
+		return true
+	}
 }
 
 // Write a structured error response to stderr

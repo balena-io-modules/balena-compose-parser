@@ -1,0 +1,6 @@
+services:
+  app:
+    image: alpine
+    env_file:
+      # Points outside this directory, and nothing stops it.
+      - ../../../test/fixtures/secondary-files/outside.env
