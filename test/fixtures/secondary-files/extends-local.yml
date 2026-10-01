@@ -1,0 +1,5 @@
+services:
+  base:
+    image: alpine
+  app:
+    extends: base

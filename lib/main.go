@@ -3,12 +3,16 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"maps"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/compose-spec/compose-go/v2/cli"
+	"github.com/compose-spec/compose-go/v2/loader"
 	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/sirupsen/logrus"
 )
@@ -33,8 +37,9 @@ Arguments:
 
 Flags:
   --skip-interpolation  Leave ${VARIABLE} references verbatim instead of substituting them.
-  --host-env            Let the compose file read this process's environment. Only pass this when
-                        the environment belongs to the person who wrote the compose file.
+  --host-env            Trust the compose file, letting it read this process's environment and the
+                        files it names in env_file, label_file, include and extends.file. Only pass
+                        this for a compose file written by whoever is running us.
 
 Example:
   balena-compose-parser -f docker-compose.yml -f docker-compose.override.yml my-project-name
@@ -133,8 +138,14 @@ func main() {
 	}
 	resultChan := make(chan loadResult, 1)
 
-	// Run LoadProject in a goroutine
+	// Run the load in a goroutine
 	go func() {
+		if !hostEnv {
+			project, err := loadUntrusted(ctx, options, projectName, skipInterpolation)
+			resultChan <- loadResult{project: project, err: err}
+			return
+		}
+
 		project, err := options.LoadProject(ctx)
 		resultChan <- loadResult{project: project, err: err}
 	}()
@@ -143,6 +154,10 @@ func main() {
 	var project *types.Project
 	select {
 	case result := <-resultChan:
+		if errors.Is(result.err, errSecondaryFile) {
+			outputError("ValidationError", result.err.Error())
+			os.Exit(1)
+		}
 		if result.err != nil {
 			outputError("ParseError", fmt.Sprintf("Failed to parse compose file: %v", result.err))
 			os.Exit(1)
@@ -162,6 +177,105 @@ func main() {
 
 	// Output the parsed project directly to stdout
 	os.Stdout.Write(projectJSON)
+}
+
+var errSecondaryFile = errors.New("secondary file references are not allowed in an untrusted compose file")
+
+// loadUntrusted reads the compose files once, refuses any that name a file
+// compose-go would go on to read, and builds the project from what it already
+// read. Reading a second time would leave a window for the file to change
+// between the check and the load.
+//
+// SkipInclude and SkipExtends leave those keys in the model unfollowed, which is
+// what lets us see them. Skipping them costs nothing here because a file that
+// uses either is refused anyway.
+func loadUntrusted(
+	ctx context.Context,
+	options *cli.ProjectOptions,
+	projectName string,
+	skipInterpolation bool,
+) (*types.Project, error) {
+	workingDir, err := options.GetWorkingDir()
+	if err != nil {
+		return nil, err
+	}
+
+	configDetails, err := options.ReadConfigFiles(ctx, workingDir, options)
+	if err != nil {
+		return nil, err
+	}
+
+	common := func(o *loader.Options) {
+		o.SkipInterpolation = skipInterpolation
+		o.Profiles = []string{"*"}
+		o.SetProjectName(projectName, true)
+	}
+
+	// Look at the model with include and extends unfollowed, so the keys are
+	// still visible to inspect.
+	model, err := loader.LoadModelWithContext(ctx, *configDetails, common,
+		func(o *loader.Options) {
+			o.SkipInclude = true
+			o.SkipExtends = true
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := rejectSecondaryFiles(model); err != nil {
+		return nil, err
+	}
+
+	// Then load for real from the same already-read content. extends is applied
+	// this time, since a service may extend another in the same file, which reads
+	// nothing. Only extends.file and include reach the filesystem, and both were
+	// refused above.
+	return loader.LoadWithContext(ctx, *configDetails, common)
+}
+
+// rejectSecondaryFiles errors if the model names a file compose-go would read.
+//
+// This holds for a single compose file. Given more than one, a later file can
+// erase an include with !reset after an earlier file has already been loaded and
+// followed, because include is resolved while each file loads rather than after
+// the merge, so it would not show up here. The builder passes one file. Anything
+// passing several and relying on this should check each file itself.
+func rejectSecondaryFiles(model map[string]any) error {
+	if namesPath(model["include"]) {
+		return fmt.Errorf("%w: include", errSecondaryFile)
+	}
+
+	services, _ := model["services"].(map[string]any)
+	for _, name := range slices.Sorted(maps.Keys(services)) {
+		service, _ := services[name].(map[string]any)
+		for _, key := range []string{"env_file", "label_file"} {
+			if namesPath(service[key]) {
+				return fmt.Errorf("%w: services.%s.%s", errSecondaryFile, name, key)
+			}
+		}
+		extends, _ := service["extends"].(map[string]any)
+		if namesPath(extends["file"]) {
+			return fmt.Errorf("%w: services.%s.extends.file", errSecondaryFile, name)
+		}
+	}
+
+	return nil
+}
+
+// namesPath reports whether a field could hold a path. An empty list does not.
+func namesPath(value any) bool {
+	switch v := value.(type) {
+	case nil:
+		return false
+	case string:
+		return v != ""
+	case []any:
+		return len(v) > 0
+	case map[string]any:
+		return len(v) > 0
+	default:
+		return true
+	}
 }
 
 // Write a structured error response to stderr

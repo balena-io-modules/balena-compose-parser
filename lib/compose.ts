@@ -3,6 +3,7 @@ import { promisify } from 'util';
 import { randomUUID } from 'crypto';
 import * as path from 'path';
 
+import type { ErrorLevel } from './errors';
 import {
 	ComposeError,
 	ValidationError,
@@ -27,9 +28,12 @@ const execFileAsync = promisify(execFile);
 
 export interface ParseOptions {
 	/**
-	 * Let the compose file read our environment. Off by default, since a compose
-	 * file can name any variable we hold and have the value copied out. Only turn
-	 * it on when the environment belongs to whoever wrote the file.
+	 * Treat the compose file as trusted, letting it read our environment and the
+	 * files it names in `env_file`, `label_file`, `include` and `extends.file`.
+	 *
+	 * Off by default. A compose file can name any variable we hold, and any path we
+	 * can read, and have either copied into the output. Only turn it on when the
+	 * file came from whoever is running us.
 	 */
 	hostEnvironment?: boolean;
 
@@ -113,6 +117,19 @@ export async function parse(
 	return normalize(parsedResult, filePaths[0]);
 }
 
+// The binary names the error it hit. Build the matching class, so a consumer can
+// check with instanceof and not just by name.
+function toError(message: string, level: string, name?: string): ComposeError {
+	switch (name) {
+		case 'ValidationError':
+			return new ValidationError(message);
+		case 'ArgumentError':
+			return new ArgumentError(message);
+		default:
+			return new ComposeError(message, level as ErrorLevel, name);
+	}
+}
+
 /**
  * Convert stderr output from compose-go into a list of ComposeError objects
  * @param stderr - stderr string output from compose-go
@@ -128,11 +145,7 @@ function toComposeError(stderr: string): ComposeError[] {
 			// Both our custom error format and logrus JSON format have 'message' field
 			if (parsed.message) {
 				errors.push(
-					new ComposeError(
-						parsed.message,
-						parsed.level ?? 'error',
-						parsed.name,
-					),
+					toError(parsed.message, parsed.level ?? 'error', parsed.name),
 				);
 			}
 		} catch {

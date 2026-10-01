@@ -1,0 +1,10 @@
+# The interpolated value made the pre-check fail validation, and a failed
+# pre-check used to let the file through.
+services:
+  app:
+    image: alpine
+    ports:
+      - target: 80
+        host_ip: ${IP:-127.0.0.1}
+    env_file:
+      - ./outside.env
