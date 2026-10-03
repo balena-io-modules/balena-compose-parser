@@ -86,6 +86,34 @@ const composition = await parse([
 const imageDescriptors = toImageDescriptors(composition);
 ```
 
+### Parse options
+
+By default `parse()` reads nothing outside the compose files you name. It will not read this process's environment, and it will not follow `env_file`, `label_file`, `include` or `extends.file`.
+
+```typescript
+// A compose file written by the person running this process
+const trusted = await parse('docker-compose.yml', { hostEnvironment: true });
+
+// A compose file someone uploaded. Keep the defaults, and skip interpolation if
+// it has already been interpolated elsewhere
+const untrusted = await parse('docker-compose.yml', { skipInterpolation: true });
+```
+
+| Option | Default | Effect when on |
+| --- | --- | --- |
+| `hostEnvironment` | `false` | `${VAR}` and valueless `environment: [FOO]` entries resolve from this process's environment, and `env_file`, `label_file`, `include` and `extends.file` are followed and folded into the composition |
+| `skipInterpolation` | `false` | `${VAR}` references are left verbatim |
+
+- `skipInterpolation` does not cover a valueless entry, which is resolved by name rather than by substitution. `hostEnvironment` is what governs that. The two forms look alike and behave differently.
+
+  ```yaml
+  environment:
+    - SOME_VARIABLE              # valueless, resolved by name
+    - OTHER=${SOME_VARIABLE}     # substitution
+  ```
+
+- `hostEnvironment` places no restriction on where a secondary file points. An untrusted compose file can name any path this process can read, including `/proc/<pid>/environ`, which is why it covers both and why leaving it off is what keeps a parse hermetic.
+
 ### Image Descriptors
 
 The `toImageDescriptors()` function converts a composition into descriptors that can be used for image operations:
