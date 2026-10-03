@@ -50,7 +50,9 @@ describe('compose-go parsing & validation', () => {
 		});
 
 		it('should parse a more complex compose file', async () => {
-			const composition = await parse('test/fixtures/complex.yml');
+			const composition = await parse('test/fixtures/complex.yml', {
+				hostEnvironment: true,
+			});
 			expect(composition).to.deep.equal({
 				services: {
 					s1: {
@@ -394,6 +396,7 @@ describe('compose-go parsing & validation', () => {
 		it('should read from env_file and combine with environment config in environment -> env_file resolution order', async () => {
 			const composition = await parse(
 				'test/fixtures/compose/services/env_file.yml',
+				{ hostEnvironment: true },
 			);
 			expect(composition).to.deep.equal({
 				services: {
@@ -439,6 +442,7 @@ describe('compose-go parsing & validation', () => {
 		it('should merge services from extends config', async () => {
 			const composition = await parse(
 				'test/fixtures/compose/services/extends.yml',
+				{ hostEnvironment: true },
 			);
 			expect(composition).to.deep.equal({
 				services: {
@@ -472,7 +476,9 @@ describe('compose-go parsing & validation', () => {
 
 		it('should error if extends references a nonexistent file', async () => {
 			try {
-				await parse('test/fixtures/compose/services/extends_nonexistent.yml');
+				await parse('test/fixtures/compose/services/extends_nonexistent.yml', {
+					hostEnvironment: true,
+				});
 				expect.fail(
 					'Expected compose parser to error if extends references a nonexistent file',
 				);
@@ -536,6 +542,7 @@ describe('compose-go parsing & validation', () => {
 		it('should read from label_file and combine with labels config in labels -> label_file resolution order', async () => {
 			const composition = await parse(
 				'test/fixtures/compose/services/label_file.yml',
+				{ hostEnvironment: true },
 			);
 			expect(composition).to.deep.equal({
 				services: {
@@ -2168,7 +2175,12 @@ describe('compose-go parsing & validation', () => {
 		});
 
 		it('should support include directives', async () => {
-			const composition = await parse('test/fixtures/compose/include/main.yml');
+			const composition = await parse(
+				'test/fixtures/compose/include/main.yml',
+				{
+					hostEnvironment: true,
+				},
+			);
 
 			expect(composition).to.deep.equal({
 				services: {
@@ -2212,6 +2224,7 @@ describe('compose-go parsing & validation', () => {
 
 			const composition = await parse(
 				'test/fixtures/compose/interpolation/compose.yml',
+				{ hostEnvironment: true },
 			);
 
 			expect(composition).to.deep.equal({

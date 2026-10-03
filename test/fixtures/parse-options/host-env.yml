@@ -1,0 +1,8 @@
+services:
+  app:
+    image: alpine
+    environment:
+      # Resolved by name from the parsing process's environment.
+      - SECRET_BALENA_PASSWORD
+      # Resolved by substitution, which is what skipInterpolation governs.
+      - INTERPOLATED=${SECRET_BALENA_PASSWORD}

@@ -1,0 +1,9 @@
+# compose-go merges every document in the file, so the check has to read them
+# all. Only looking at the first one let this through.
+{}
+---
+services:
+  app:
+    image: alpine
+    env_file:
+      - ./outside.env
