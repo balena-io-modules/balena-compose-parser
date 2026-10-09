@@ -1,0 +1,7 @@
+# The long form of env_file, a list of maps rather than strings
+services:
+  app:
+    image: alpine
+    env_file:
+      - path: ./outside.env
+        required: false

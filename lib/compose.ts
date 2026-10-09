@@ -3,6 +3,7 @@ import { promisify } from 'util';
 import { randomUUID } from 'crypto';
 import * as path from 'path';
 
+import type { ErrorLevel } from './errors';
 import {
 	ComposeError,
 	ValidationError,
@@ -25,14 +26,35 @@ import type {
 
 const execFileAsync = promisify(execFile);
 
+export interface ParseOptions {
+	/**
+	 * Treat the compose file as trusted, letting it read our environment and the
+	 * files it names in `env_file`, `label_file`, `include` and `extends.file`.
+	 *
+	 * Off by default. A compose file can name any variable we hold, and any path we
+	 * can read, and have either copied into the output. Only turn it on when the
+	 * file came from whoever is running us.
+	 */
+	hostEnvironment?: boolean;
+
+	/**
+	 * Leave `${VAR}` references verbatim. Used by the builder, which re-parses a
+	 * compose file the CLI has already interpolated.
+	 */
+	skipInterpolation?: boolean;
+}
+
 /**
  * Parse one or more compose files using compose-go, and return a normalized composition object
  * @param composeFilePaths - Path(s) to the compose file(s) to parse. Can be a single string or an array of strings.
+ * @param options - See {@link ParseOptions}
  * @returns Normalized composition object
  */
 export async function parse(
 	composeFilePaths: string | string[],
+	options: ParseOptions = {},
 ): Promise<Composition> {
+	const { hostEnvironment = false, skipInterpolation = false } = options;
 	// Normalize input to always be an array
 	const filePaths = Array.isArray(composeFilePaths)
 		? composeFilePaths
@@ -51,6 +73,8 @@ export async function parse(
 	// quoting issues when the binary path or compose file paths contain spaces
 	const args = [
 		...filePaths.flatMap((filePath) => ['-f', filePath]),
+		...(skipInterpolation ? ['--skip-interpolation'] : []),
+		...(hostEnvironment ? ['--host-env'] : []),
 		projectName,
 	];
 
@@ -60,7 +84,8 @@ export async function parse(
 			: 'balena-compose-parser';
 	const binaryPath = path.join(__dirname, '..', 'bin', binaryName);
 	const result = await execFileAsync(binaryPath, args, {
-		env: process.env,
+		// Withhold it here too.
+		env: hostEnvironment ? process.env : {},
 	}).catch((e) => {
 		// If exec error has stdout/stderr, handle them later; otherwise throw immediately
 		if (e.stdout !== undefined && e.stderr !== undefined) {
@@ -92,6 +117,19 @@ export async function parse(
 	return normalize(parsedResult, filePaths[0]);
 }
 
+// The binary names the error it hit. Build the matching class, so a consumer can
+// check with instanceof and not just by name.
+function toError(message: string, level: string, name?: string): ComposeError {
+	switch (name) {
+		case 'ValidationError':
+			return new ValidationError(message);
+		case 'ArgumentError':
+			return new ArgumentError(message);
+		default:
+			return new ComposeError(message, level as ErrorLevel, name);
+	}
+}
+
 /**
  * Convert stderr output from compose-go into a list of ComposeError objects
  * @param stderr - stderr string output from compose-go
@@ -107,11 +145,7 @@ function toComposeError(stderr: string): ComposeError[] {
 			// Both our custom error format and logrus JSON format have 'message' field
 			if (parsed.message) {
 				errors.push(
-					new ComposeError(
-						parsed.message,
-						parsed.level ?? 'error',
-						parsed.name,
-					),
+					toError(parsed.message, parsed.level ?? 'error', parsed.name),
 				);
 			}
 		} catch {

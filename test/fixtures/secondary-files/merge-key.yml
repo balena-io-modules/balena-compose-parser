@@ -1,0 +1,9 @@
+# A merge key, so env_file is not written on the service itself. A YAML scan of
+# our own would have to reimplement this; loading the model gets it for free.
+x-base: &base
+  env_file:
+    - ./outside.env
+services:
+  app:
+    image: alpine
+    <<: *base
