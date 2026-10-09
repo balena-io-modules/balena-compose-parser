@@ -1,4 +1,115 @@
 - commits:
+    - subject: Document the parse options in the README
+      hash: 6d78b4d2634f49e40d8be535040c857c2c1d85d9
+      body: >
+        The defaults changed, so the examples showing parse() with no options
+        were
+
+        misleading. They now read nothing outside the compose files named.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+    - subject: Reject secondary files unless the compose file is trusted
+      hash: a552827a42060792fd0158cd17e32019f33fbc3b
+      body: >
+        env_file, label_file, include and extends.file name paths we read and
+        fold into
+
+        the output, and nothing restricts where they point. So a compose file
+        can read
+
+        anything we can, which on Linux includes /proc/<pid>/environ, and with
+        it the
+
+        environment hostEnvironment was meant to withhold.
+
+
+        hostEnvironment now governs both, since no caller wants one without the
+        other.
+
+        The CLI parses a file its own user wrote and needs each of them, while
+        the
+
+        builder parses an upload and should have neither.
+
+
+        compose-go reads these files while it loads, so the check has to run
+        first. It
+
+        asks compose-go for the model, which is the merged compose file before
+        any of
+
+        those paths are followed. Reading the YAML ourselves would mean
+        reimplementing
+
+        how compose-go merges documents and expands merge keys, and getting that
+        wrong is
+
+        how a reference slips through.
+
+
+        This is the first error the binary raises that we also export as a
+        class, so
+
+        toComposeError now builds the named class instead of a plain
+        ComposeError. A
+
+        consumer checking with instanceof would have been surprised otherwise.
+      footer:
+        Change-type: major
+        change-type: major
+      author: Christina Ying Wang
+    - subject: Add parse options for host environment and interpolation
+      hash: db3419f547fff4e075dcabcddd271a474fb0568d
+      body: >
+        parse() had no way to say which environment it may read. compose.ts
+        handed the
+
+        binary process.env and main.go passed cli.WithOsEnv, neither visible at
+        the call
+
+        site. A compose file can name any variable we hold and have the value
+        copied into
+
+        the output, so this now defaults to off and callers opt in.
+
+
+        skipInterpolation is not enough to stop that on its own. It governs
+        ${VAR}
+
+        substitution, while a valueless environment entry is resolved by name.
+
+
+        Breaking for anyone relying on interpolation without passing
+        hostEnvironment,
+
+        which the CLI will need to do when it bumps.
+      footer:
+        Change-type: major
+        change-type: major
+      author: Christina Ying Wang
+    - subject: Read all arguments, and reject unknown ones
+      hash: 1b1c299b8e7d265757c8a4d737b0026151124e6a
+      body: >
+        Parsing stopped at the project name, so anything after it was ignored,
+        including
+
+        a second -f. An unrecognised flag was taken as the project name.
+
+
+        Now every argument is read, so order does not matter, and an
+        unrecognised flag is
+
+        an error.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+  version: 1.0.0
+  title: ""
+  date: 2026-10-09T01:24:55.369Z
+- commits:
     - subject: Clarify execFileSync vs execFile
       hash: 7d8fe6852436d6068de6829d0b23658c9e3ac2cc
       body: |
