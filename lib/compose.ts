@@ -312,7 +312,6 @@ export const SERVICE_CONFIG_DENY_LIST = [
 	'oom_kill_disable',
 	'platform',
 	'pull_policy',
-	'runtime',
 	'scale',
 	'secrets',
 	'stdin_open',
@@ -798,6 +797,14 @@ function longToShortSyntaxVolumes(
 			continue;
 		}
 
+		// TEMPORARY: pass all bind mounts through so the supervisor can filter them (e2e testing)
+		if (v.type === 'bind') {
+			shortSyntaxVolumes.push(
+				`${v.source}:${v.target}${v.read_only ? ':ro' : ''}`,
+			);
+			continue;
+		}
+
 		// Reject volumes of type bind, image, npipe, or cluster
 		if (['bind', 'image', 'npipe', 'cluster'].includes(v.type)) {
 			throw new ServiceError(
@@ -938,6 +945,11 @@ function createImageDescriptor(
 		console.warn(
 			`Service "${serviceName}" uses compose fields that may not be supported on legacy Supervisor versions`,
 		);
+	}
+
+	// TEMPORARY: skip the sw.spec requirement so new compose fields reach the supervisor (e2e testing)
+	const skipComposeRequirement = true;
+	if (!skipComposeRequirement) {
 		const composeRequirement = {
 			type: 'sw.spec',
 			slug: 'compose',

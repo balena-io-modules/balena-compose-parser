@@ -928,67 +928,42 @@ describe('compose-go parsing & validation', () => {
 			}
 		});
 
-		it('should reject volumes of type bind', async () => {
-			try {
-				await parse(
-					'test/fixtures/compose/services/unsupported/volume_bind.yml',
-				);
-				expect.fail('Expected compose parser to reject volumes of type bind');
-			} catch (error) {
-				expect(error).to.be.instanceOf(ServiceError);
-				expect(error.serviceName).to.equal('main');
-				expect(error.message).to.equal(
-					'service.volumes cannot be of type "bind"',
-				);
-			}
+		// TEMPORARY: bind mounts are passed through for e2e testing; restore the rejection test with the patch revert
+		it('should pass through volumes of type bind (TEMPORARY)', async () => {
+			const composition = await parse(
+				'test/fixtures/compose/services/unsupported/volume_bind.yml',
+			);
+			expect(composition.services.main.volumes).to.deep.equal(['/data:/data']);
 		});
 
-		it('should reject volumes of type bind with relative paths', async () => {
-			try {
-				await parse(
-					'test/fixtures/compose/services/unsupported/volume_bind_relative.yml',
-				);
-				expect.fail(
-					'Expected compose parser to reject volumes of type bind with relative paths',
-				);
-			} catch (error) {
-				expect(error).to.be.instanceOf(ComposeError);
-				expect(error.message).to.equal(
-					'service.volumes cannot be of type "bind"',
-				);
-			}
+		// TEMPORARY: bind mounts are passed through for e2e testing; restore the rejection test with the patch revert
+		it('should pass through volumes of type bind with relative paths (TEMPORARY)', async () => {
+			const composition = await parse(
+				'test/fixtures/compose/services/unsupported/volume_bind_relative.yml',
+			);
+			const volumes = composition.services.main.volumes ?? [];
+			expect(volumes).to.have.lengthOf(1);
+			expect(volumes[0]).to.match(/:\/some-place$/);
 		});
 
-		it('should reject volumes of type bind with relative paths', async () => {
-			try {
-				await parse(
-					'test/fixtures/compose/services/unsupported/volume_bind_relative.yml',
-				);
-				expect.fail(
-					'Expected compose parser to reject volumes of type bind with relative paths',
-				);
-			} catch (error) {
-				expect(error).to.be.instanceOf(ComposeError);
-				expect(error.message).to.equal(
-					'service.volumes cannot be of type "bind"',
-				);
-			}
+		// TEMPORARY: bind mounts are passed through for e2e testing; restore the rejection test with the patch revert
+		it('should pass through volumes of type bind with relative paths (TEMPORARY)', async () => {
+			const composition = await parse(
+				'test/fixtures/compose/services/unsupported/volume_bind_relative.yml',
+			);
+			const volumes = composition.services.main.volumes ?? [];
+			expect(volumes).to.have.lengthOf(1);
+			expect(volumes[0]).to.match(/:\/some-place$/);
 		});
 
-		it('should reject volumes of type bind with relative paths', async () => {
-			try {
-				await parse(
-					'test/fixtures/compose/services/unsupported/volume_bind_relative.yml',
-				);
-				expect.fail(
-					'Expected compose parser to reject volumes of type bind with relative paths',
-				);
-			} catch (error) {
-				expect(error).to.be.instanceOf(ComposeError);
-				expect(error.message).to.equal(
-					'service.volumes cannot be of type "bind"',
-				);
-			}
+		// TEMPORARY: bind mounts are passed through for e2e testing; restore the rejection test with the patch revert
+		it('should pass through volumes of type bind with relative paths (TEMPORARY)', async () => {
+			const composition = await parse(
+				'test/fixtures/compose/services/unsupported/volume_bind_relative.yml',
+			);
+			const volumes = composition.services.main.volumes ?? [];
+			expect(volumes).to.have.lengthOf(1);
+			expect(volumes[0]).to.match(/:\/some-place$/);
 		});
 
 		it('should reject volumes of type image', async () => {
@@ -1260,33 +1235,23 @@ describe('compose-go parsing & validation', () => {
 			});
 		});
 
-		it('should add sw.spec/compose contract if newly supported compose fields are present', async () => {
+		// TEMPORARY: sw.spec/compose requirement is disabled for e2e testing; restore this test with the patch revert
+		it('should not add sw.spec/compose contract if newly supported compose fields are present (TEMPORARY)', async () => {
 			const composition = await parse(
 				'test/fixtures/compose/services/newly_supported.yml',
 			);
 			const descriptors = toImageDescriptors(composition);
-			const composeRequirement = {
-				type: 'sw.spec',
-				slug: 'compose',
-				version: '>=2',
-			};
 			// Service with newly supported top-level fields
 			const main = descriptors.find((d) => d.serviceName === 'main');
-			expect(main?.contract)
-				.to.have.property('requires')
-				.that.deep.includes(composeRequirement);
+			expect(main?.contract).to.be.undefined;
 			// Service with newly supported healthcheck sub-field
 			const sidecar = descriptors.find((d) => d.serviceName === 'sidecar');
-			expect(sidecar?.contract)
-				.to.have.property('requires')
-				.that.deep.includes(composeRequirement);
+			expect(sidecar?.contract).to.be.undefined;
 			// Service with newly supported network sub-fields
 			const netservice = descriptors.find(
 				(d) => d.serviceName === 'netservice',
 			);
-			expect(netservice?.contract)
-				.to.have.property('requires')
-				.that.deep.includes(composeRequirement);
+			expect(netservice?.contract).to.be.undefined;
 		});
 
 		it('should not add sw.spec/compose contract if only already-supported compose fields are present', async () => {
