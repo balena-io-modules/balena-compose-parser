@@ -695,11 +695,19 @@ function longToShortSyntaxPorts(
 					delete (port as any)[field];
 				}
 			}
+			// Short syntax is `[HOST_IP:][HOST_PORT:]CONTAINER_PORT[/PROTOCOL]`,
+			// where a host address with no host port needs the empty segment kept
+			// (`127.0.0.1::80`) so that the address is not read as the host port.
+			// An IPv6 address is left unbracketed (`::1:6001:6001`), which is the
+			// only form the Supervisor accepts; serialize() adds the brackets that
+			// compose-go needs.
+			const hostIp = port.host_ip;
 			shortSyntaxPorts.push(
-				(port.host_ip ? `${port.host_ip}:` : '') +
-					`${port.published ? `${port.published}:` : ''}${port.target}` +
+				(hostIp ? `${hostIp}:${port.published ?? ''}:` : '') +
+					(!hostIp && port.published ? `${port.published}:` : '') +
+					`${port.target}` +
 					// Only include protocol if it's not default (not TCP)
-					(port.protocol !== 'tcp' ? `/${port.protocol}` : ''),
+					(port.protocol && port.protocol !== 'tcp' ? `/${port.protocol}` : ''),
 			);
 		}
 	}
