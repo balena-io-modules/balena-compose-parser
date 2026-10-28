@@ -848,6 +848,25 @@ function longToShortSyntaxVolumes(
 	return { shortSyntaxVolumes, shortSyntaxTmpfs };
 }
 
+/**
+ * Put the brackets back on an IPv6 host address in a short-syntax port, which
+ * `longToShortSyntaxPorts` above leaves bare (`::1:6001:6001`) because that is
+ * the only form the Supervisor accepts, while compose-go insists on
+ * `[::1]:6001:6001`. The last two segments are always the host port and the
+ * container port, so anything before them is the address. Kept next to the
+ * formatter so that the two read the same grammar.
+ */
+export function bracketIpv6HostIp(port: unknown): unknown {
+	if (typeof port !== 'string') {
+		return port;
+	}
+	const match = /^(.+):([^:]*):([^:]+)$/.exec(port);
+	if (match == null || !match[1].includes(':') || match[1].startsWith('[')) {
+		return port;
+	}
+	return `[${match[1]}]:${match[2]}:${match[3]}`;
+}
+
 export const NETWORK_CONFIG_DENY_LIST = ['attachable', 'external'];
 
 function normalizeNetwork(rawNetwork: Dict<any>): Network {
