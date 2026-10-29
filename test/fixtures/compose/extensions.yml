@@ -2,7 +2,7 @@ x-env: &base
   environment:
     - CONFIG_KEY=value1
     - EXAMPLE_KEY=value2
-  annotations:
+  labels:
     io.balena.test: true
 
 x-keys1: &keys1
