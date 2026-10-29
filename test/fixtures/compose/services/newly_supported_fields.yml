@@ -1,0 +1,9 @@
+services:
+  main:
+    image: alpine:latest
+    command: sh -c "sleep infinity"
+    annotations:
+      - com.example.annotation=value
+    uts: host
+    post_start:
+      - command: echo hello

@@ -462,6 +462,15 @@ function normalizeService(
 		);
 	}
 
+	// Reject newly supported compose fields until a Supervisor that supports them
+	// is in production. See lib/legacy.ts.
+	if (usesNewComposeFields(service)) {
+		throw new ServiceError(
+			'service uses new compose fields which are not supported',
+			serviceName,
+		);
+	}
+
 	// Remove null entrypoint
 	/// compose-go adds `entrypoint: null` if entrypoint is unspecified.
 	/// In docker-compose, this means that the default entrypoint from the image is used, but in
@@ -929,30 +938,32 @@ function createImageDescriptor(
 	serviceName: string,
 	service: Service,
 ): ImageDescriptor {
-	let contract = createContractFromLabels(serviceName, service.labels);
+	const contract = createContractFromLabels(serviceName, service.labels);
 
+	// TODO: Re-enable once a Supervisor supporting the new compose fields is in
+	// production, and drop the rejection in normalizeService.
 	// If the service uses newly supported compose fields, add a sw.spec/compose
 	// contract requirement so that legacy Supervisors can reject the composition.
 	// Version 2 corresponds to Compose Spec v2: https://docs.docker.com/reference/compose-file/
-	if (usesNewComposeFields(service)) {
-		console.warn(
-			`Service "${serviceName}" uses compose fields that may not be supported on legacy Supervisor versions`,
-		);
-		const composeRequirement = {
-			type: 'sw.spec',
-			slug: 'compose',
-			version: '>=2',
-		};
-		if (contract && 'requires' in contract) {
-			(contract.requires as any[]).push(composeRequirement);
-		} else {
-			contract = {
-				type: 'sw.container',
-				slug: `contract-for-${serviceName}`,
-				requires: [composeRequirement],
-			};
-		}
-	}
+	// if (usesNewComposeFields(service)) {
+	// 	console.warn(
+	// 		`Service "${serviceName}" uses compose fields that may not be supported on legacy Supervisor versions`,
+	// 	);
+	// 	const composeRequirement = {
+	// 		type: 'sw.spec',
+	// 		slug: 'compose',
+	// 		version: '>=2',
+	// 	};
+	// 	if (contract && 'requires' in contract) {
+	// 		(contract.requires as any[]).push(composeRequirement);
+	// 	} else {
+	// 		contract = {
+	// 			type: 'sw.container',
+	// 			slug: `contract-for-${serviceName}`,
+	// 			requires: [composeRequirement],
+	// 		};
+	// 	}
+	// }
 
 	if (service.image && !service.build) {
 		return {
