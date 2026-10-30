@@ -2,19 +2,18 @@ services:
   main:
     image: alpine:latest
     command: sh -c "sleep infinity"
-    annotations:
-      - com.example.annotation=value
-    attach: false
-    cgroup: 'host'
-    cpu_rt_runtime: 100000
-    cpu_rt_period: 100000
-    cpus: 0.5
+    # annotations: # Newly supported, rejected until Supervisor support lands
+      # - com.example.annotation=value
+    # cgroup: 'host' # Newly supported, rejected until Supervisor support lands
+    # cpu_rt_runtime: 100000 # Newly supported, rejected until Supervisor support lands
+    # cpu_rt_period: 100000 # Newly supported, rejected until Supervisor support lands
+    # cpus: 0.5 # Newly supported, rejected until Supervisor support lands
     cpuset: 0-2
     depends_on:
       - one
-    device_cgroup_rules:
-      - 'c 1:3 mr'
-      - 'a 7:* rmw'
+    # device_cgroup_rules: # Newly supported, rejected until Supervisor support lands
+      # - 'c 1:3 mr'
+      # - 'a 7:* rmw'
     devices:
       - /dev/sda:/dev/sda:rwm
       - /dev/sdb:/dev/sdb:r
@@ -43,7 +42,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-      start_interval: 10s
+      # start_interval: 10s # Newly supported, rejected until Supervisor support lands
     hostname: balena
     init: true
     # ipc: service:one # Not yet supported by Supervisor
@@ -53,21 +52,8 @@ services:
     mac_address: 02:42:ac:11:00:02
     mem_limit: 1024m
     mem_reservation: 512m
+    pid: host
     pids_limit: 50
-    post_start:
-      - command: ./do_something_on_startup.sh
-        user: root
-        privileged: true
-        working_dir: /app
-        environment:
-          - FOO=BAR1
-    pre_stop:
-      - command: ./do_something_on_shutdown.sh
-        user: root
-        privileged: true
-        working_dir: /app
-        environment:
-          - FOO=BAR2
     privileged: true
     read_only: true
     security_opt:
@@ -89,12 +75,12 @@ services:
         hard: 40000
     user: balena
     userns_mode: host
-    uts: host
+    # uts: host # Newly supported, rejected until Supervisor support lands
   one:
     image: alpine:latest
     command: sh -c "sleep infinity"
-    annotations:
-      com.example.annotation2: value2
+    # annotations: # Newly supported, rejected until Supervisor support lands
+      # com.example.annotation2: value2
     dns: 
       - 8.8.8.8
       - 8.8.4.4

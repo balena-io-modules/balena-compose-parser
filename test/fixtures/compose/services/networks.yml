@@ -11,18 +11,17 @@ services:
       net:
         aliases:
           - net1
-        interface_name: eth0
         ipv4_address: 10.0.0.2
-        ipv6_address: 2001:db8::2
+        # ipv6_address: 2001:db8::2 # Newly supported, rejected until Supervisor support lands
         # link_local_ips: # Not yet supported by Supervisor
         #   - 169.254.1.2
         #   - 169.254.1.3
-        mac_address: 02:42:ac:11:00:02
-        driver_opts:
-          foo: "bar"
-          baz: 1
-        gw_priority: 1
-        priority: 2
+        # mac_address: 02:42:ac:11:00:02 # Newly supported, rejected until Supervisor support lands
+        # driver_opts: # Newly supported, rejected until Supervisor support lands
+          # foo: "bar"
+          # baz: 1
+        # gw_priority: 1 # Newly supported, rejected until Supervisor support lands
+        # priority: 2 # Newly supported, rejected until Supervisor support lands
   
 
 networks:

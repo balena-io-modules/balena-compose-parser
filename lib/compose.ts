@@ -292,7 +292,11 @@ function removeProjectName(obj: Dict<any>) {
 	}
 }
 
+// attach, post_start, pre_stop and volumes_from are not supported by any
+// Supervisor, including helios. Their behaviour needs further shaping before
+// they can move off this list.
 export const SERVICE_CONFIG_DENY_LIST = [
+	'attach',
 	'blkio_config',
 	'configs',
 	'cpu_count',
@@ -311,12 +315,15 @@ export const SERVICE_CONFIG_DENY_LIST = [
 	'memswap_limit',
 	'oom_kill_disable',
 	'platform',
+	'post_start',
+	'pre_stop',
 	'pull_policy',
 	'runtime',
 	'scale',
 	'secrets',
 	'stdin_open',
 	'storage_opt',
+	'volumes_from',
 ];
 
 const OOM_SCORE_ADJ_WARN_THRESHOLD = -900;
@@ -423,14 +430,6 @@ function normalizeService(
 		);
 	}
 
-	// Reject volumes_from which references container:${containerId}
-	if (service.volumes_from?.some((v) => v.match(/^container:.*$/))) {
-		throw new ServiceError(
-			'service.volumes_from which references a containerId is not allowed',
-			serviceName,
-		);
-	}
-
 	// Reject service.ipc which references service:${serviceName} as Supervisor doesn't support this yet
 	if (
 		typeof service.ipc === 'string' &&
@@ -443,11 +442,18 @@ function normalizeService(
 	}
 
 	// Reject service.network.link_local_ips as Supervisor doesn't support this yet
+	// Reject service.network.interface_name as no Supervisor, including helios, supports it
 	if (service.networks) {
 		for (const [, network] of Object.entries(service.networks)) {
 			if (network?.link_local_ips) {
 				throw new ServiceError(
 					'service.network.link_local_ips is not supported',
+					serviceName,
+				);
+			}
+			if (network?.interface_name) {
+				throw new ServiceError(
+					'service.network.interface_name is not allowed',
 					serviceName,
 				);
 			}
@@ -458,6 +464,15 @@ function normalizeService(
 	if (service.pids_limit && service.pids_limit < 0) {
 		throw new ServiceError(
 			'negative service.pids_limit is not supported',
+			serviceName,
+		);
+	}
+
+	// Reject newly supported compose fields until a Supervisor that supports them
+	// is in production. See lib/legacy.ts.
+	if (usesNewComposeFields(service)) {
+		throw new ServiceError(
+			'service uses new compose fields which are not supported',
 			serviceName,
 		);
 	}
@@ -929,30 +944,32 @@ function createImageDescriptor(
 	serviceName: string,
 	service: Service,
 ): ImageDescriptor {
-	let contract = createContractFromLabels(serviceName, service.labels);
+	const contract = createContractFromLabels(serviceName, service.labels);
 
+	// TODO: Re-enable once a Supervisor supporting the new compose fields is in
+	// production, and drop the rejection in normalizeService.
 	// If the service uses newly supported compose fields, add a sw.spec/compose
 	// contract requirement so that legacy Supervisors can reject the composition.
 	// Version 2 corresponds to Compose Spec v2: https://docs.docker.com/reference/compose-file/
-	if (usesNewComposeFields(service)) {
-		console.warn(
-			`Service "${serviceName}" uses compose fields that may not be supported on legacy Supervisor versions`,
-		);
-		const composeRequirement = {
-			type: 'sw.spec',
-			slug: 'compose',
-			version: '>=2',
-		};
-		if (contract && 'requires' in contract) {
-			(contract.requires as any[]).push(composeRequirement);
-		} else {
-			contract = {
-				type: 'sw.container',
-				slug: `contract-for-${serviceName}`,
-				requires: [composeRequirement],
-			};
-		}
-	}
+	// if (usesNewComposeFields(service)) {
+	// 	console.warn(
+	// 		`Service "${serviceName}" uses compose fields that may not be supported on legacy Supervisor versions`,
+	// 	);
+	// 	const composeRequirement = {
+	// 		type: 'sw.spec',
+	// 		slug: 'compose',
+	// 		version: '>=2',
+	// 	};
+	// 	if (contract && 'requires' in contract) {
+	// 		(contract.requires as any[]).push(composeRequirement);
+	// 	} else {
+	// 		contract = {
+	// 			type: 'sw.container',
+	// 			slug: `contract-for-${serviceName}`,
+	// 			requires: [composeRequirement],
+	// 		};
+	// 	}
+	// }
 
 	if (service.image && !service.build) {
 		return {

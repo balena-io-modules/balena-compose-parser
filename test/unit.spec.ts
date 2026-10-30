@@ -1,4 +1,6 @@
 import { expect } from 'chai';
+import type { SinonStub } from 'sinon';
+import { stub } from 'sinon';
 
 import { toImageDescriptors, createContractFromLabels } from '../lib/index';
 import type { Composition, ContractParser, Service } from '../lib/index';
@@ -284,61 +286,72 @@ describe('createContractFromLabels', () => {
 		});
 	});
 
-	it('should add sw.spec/compose contract for services with newly supported fields', () => {
-		const composition: Composition = {
-			services: {
-				app: {
-					image: 'myapp:latest',
-					annotations: { 'com.example': 'value' },
-				},
-			},
-		};
-		const descriptors = toImageDescriptors(composition);
-		expect(descriptors[0].contract).to.deep.equal({
-			type: 'sw.container',
-			slug: 'contract-for-app',
-			requires: [{ type: 'sw.spec', slug: 'compose', version: '>=2' }],
-		});
-	});
-
-	it('should not add sw.spec/compose contract for services without newly supported fields', () => {
-		const composition: Composition = {
-			services: {
-				app: {
-					image: 'myapp:latest',
-					read_only: true,
-				},
-			},
-		};
-		const descriptors = toImageDescriptors(composition);
-		expect(descriptors[0].contract).to.be.undefined;
-	});
-
-	it('should merge sw.spec/compose contract with existing contract requirements', () => {
-		const composition: Composition = {
-			services: {
-				app: {
-					image: 'myapp:latest',
-					annotations: { 'com.example': 'value' },
-					labels: {
-						'io.balena.features.requires.sw.supervisor': '>=16.0.0',
-					},
-				},
-			},
-		};
-		const descriptors = toImageDescriptors(composition);
-		expect(descriptors[0].contract).to.deep.equal({
-			type: 'sw.container',
-			slug: 'contract-for-app',
-			requires: [
-				{ type: 'sw.supervisor', version: '>=16.0.0' },
-				{ type: 'sw.spec', slug: 'compose', version: '>=2' },
-			],
-		});
-	});
+	// TODO: Re-enable with the sw.spec/compose contract injection
+	// it('should add sw.spec/compose contract for services with newly supported fields', () => {
+	// 	const composition: Composition = {
+	// 		services: {
+	// 			app: {
+	// 				image: 'myapp:latest',
+	// 				annotations: { 'com.example': 'value' },
+	// 			},
+	// 		},
+	// 	};
+	// 	const descriptors = toImageDescriptors(composition);
+	// 	expect(descriptors[0].contract).to.deep.equal({
+	// 		type: 'sw.container',
+	// 		slug: 'contract-for-app',
+	// 		requires: [{ type: 'sw.spec', slug: 'compose', version: '>=2' }],
+	// 	});
+	// });
+	//
+	// it('should not add sw.spec/compose contract for services without newly supported fields', () => {
+	// 	const composition: Composition = {
+	// 		services: {
+	// 			app: {
+	// 				image: 'myapp:latest',
+	// 				read_only: true,
+	// 			},
+	// 		},
+	// 	};
+	// 	const descriptors = toImageDescriptors(composition);
+	// 	expect(descriptors[0].contract).to.be.undefined;
+	// });
+	//
+	// it('should merge sw.spec/compose contract with existing contract requirements', () => {
+	// 	const composition: Composition = {
+	// 		services: {
+	// 			app: {
+	// 				image: 'myapp:latest',
+	// 				annotations: { 'com.example': 'value' },
+	// 				labels: {
+	// 					'io.balena.features.requires.sw.supervisor': '>=16.0.0',
+	// 				},
+	// 			},
+	// 		},
+	// 	};
+	// 	const descriptors = toImageDescriptors(composition);
+	// 	expect(descriptors[0].contract).to.deep.equal({
+	// 		type: 'sw.container',
+	// 		slug: 'contract-for-app',
+	// 		requires: [
+	// 			{ type: 'sw.supervisor', version: '>=16.0.0' },
+	// 			{ type: 'sw.spec', slug: 'compose', version: '>=2' },
+	// 		],
+	// 	});
+	// });
 });
 
 describe('usesNewComposeFields', () => {
+	let warnStub: SinonStub;
+
+	beforeEach(() => {
+		warnStub = stub(console, 'warn');
+	});
+
+	afterEach(() => {
+		warnStub.restore();
+	});
+
 	it('should return true for each newly supported top-level service field', () => {
 		for (const field of NEW_COMPOSE_SERVICE_FIELDS) {
 			const service: Service = { [field]: 'test-value' };
