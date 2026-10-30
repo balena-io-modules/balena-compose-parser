@@ -9,16 +9,12 @@ import type { Service } from './types';
 // (i.e. their rejections in normalizeService are removed), add them here.
 export const NEW_COMPOSE_SERVICE_FIELDS = [
 	'annotations',
-	'attach',
 	'cgroup',
 	'cpu_rt_runtime',
 	'cpu_rt_period',
 	'cpus',
 	'device_cgroup_rules',
-	'post_start',
-	'pre_stop',
 	'uts',
-	'volumes_from',
 ];
 
 // Sub-fields of service.healthcheck that are newly supported
