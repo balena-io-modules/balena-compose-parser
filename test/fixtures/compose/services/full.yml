@@ -4,7 +4,6 @@ services:
     command: sh -c "sleep infinity"
     # annotations: # Newly supported, rejected until Supervisor support lands
       # - com.example.annotation=value
-    # attach: false # Newly supported, rejected until Supervisor support lands
     # cgroup: 'host' # Newly supported, rejected until Supervisor support lands
     # cpu_rt_runtime: 100000 # Newly supported, rejected until Supervisor support lands
     # cpu_rt_period: 100000 # Newly supported, rejected until Supervisor support lands
@@ -55,20 +54,6 @@ services:
     mem_reservation: 512m
     pid: host
     pids_limit: 50
-    # post_start: # Newly supported, rejected until Supervisor support lands
-      # - command: ./do_something_on_startup.sh
-        # user: root
-        # privileged: true
-        # working_dir: /app
-        # environment:
-          # - FOO=BAR1
-    # pre_stop: # Newly supported, rejected until Supervisor support lands
-      # - command: ./do_something_on_shutdown.sh
-        # user: root
-        # privileged: true
-        # working_dir: /app
-        # environment:
-          # - FOO=BAR2
     privileged: true
     read_only: true
     security_opt:

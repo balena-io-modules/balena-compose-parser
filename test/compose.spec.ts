@@ -197,7 +197,6 @@ describe('compose-go parsing & validation', () => {
 						// annotations: { // Newly supported, rejected until Supervisor support lands
 						// 'com.example.annotation': 'value',
 						// },
-						// attach: false, // Newly supported, rejected until Supervisor support lands
 						// cgroup: 'host', // Newly supported, rejected until Supervisor support lands
 						// cpu_rt_runtime: 100000, // Newly supported, rejected until Supervisor support lands
 						// cpu_rt_period: 100000, // Newly supported, rejected until Supervisor support lands
@@ -236,28 +235,6 @@ describe('compose-go parsing & validation', () => {
 						mem_reservation: '536870912',
 						pid: 'host',
 						pids_limit: 50,
-						// post_start: [ // Newly supported, rejected until Supervisor support lands
-						// {
-						// command: ['./do_something_on_startup.sh'],
-						// environment: {
-						// FOO: 'BAR1',
-						// },
-						// working_dir: '/app',
-						// user: 'root',
-						// privileged: true,
-						// },
-						// ],
-						// pre_stop: [ // Newly supported, rejected until Supervisor support lands
-						// {
-						// command: ['./do_something_on_shutdown.sh'],
-						// environment: {
-						// FOO: 'BAR2',
-						// },
-						// working_dir: '/app',
-						// user: 'root',
-						// privileged: true,
-						// },
-						// ],
 						privileged: true,
 						read_only: true,
 						security_opt: ['no-new-privileges'],
@@ -623,7 +600,6 @@ describe('compose-go parsing & validation', () => {
 						networks: {
 							net: {
 								aliases: ['net1'],
-								interface_name: 'eth0',
 								ipv4_address: '10.0.0.2',
 								// ipv6_address: '2001:db8::2', // Newly supported, rejected until Supervisor support lands
 								// link_local_ips: ['169.254.1.2', '169.254.1.3'], // Not yet supported by Supervisor
@@ -669,6 +645,21 @@ describe('compose-go parsing & validation', () => {
 				expect(error.serviceName).to.equal('main');
 				expect(error.message).to.equal(
 					'service.network.link_local_ips is not supported',
+				);
+			}
+		});
+
+		it('should reject service.network.interface_name', async () => {
+			try {
+				await parse(
+					'test/fixtures/compose/services/unsupported/network.interface_name.yml',
+				);
+				expect.fail('Expected compose parser to reject network.interface_name');
+			} catch (error) {
+				expect(error).to.be.instanceOf(ServiceError);
+				expect(error.serviceName).to.equal('main');
+				expect(error.message).to.equal(
+					'service.network.interface_name is not allowed',
 				);
 			}
 		});
@@ -1184,48 +1175,6 @@ describe('compose-go parsing & validation', () => {
 			});
 		});
 
-		// TODO: Re-enable when newly supported fields are no longer rejected (see lib/legacy.ts)
-		it.skip('should inject a service dependency if volumes_from is defined', async () => {
-			const composition = await parse(
-				'test/fixtures/compose/services/volumes_from.yml',
-			);
-			expect(composition).to.deep.equal({
-				services: {
-					one: {
-						image: 'alpine:latest',
-						command: ['sh', '-c', 'sleep infinity'],
-						volumes_from: ['two:ro'],
-						depends_on: ['two'],
-					},
-					two: {
-						image: 'alpine:latest',
-						command: ['sh', '-c', 'sleep infinity'],
-						volumes: ['test:/test'],
-					},
-				},
-				volumes: {
-					test: {},
-				},
-			});
-		});
-
-		it('should reject volumes_from which references container:${containerId}', async () => {
-			try {
-				await parse(
-					'test/fixtures/compose/services/unsupported/volumes_from_container.yml',
-				);
-				expect.fail(
-					'Expected compose parser to reject volumes_from which references container:${containerId}',
-				);
-			} catch (error) {
-				expect(error).to.be.instanceOf(ServiceError);
-				expect(error.serviceName).to.equal('one');
-				expect(error.message).to.equal(
-					'service.volumes_from which references a containerId is not allowed',
-				);
-			}
-		});
-
 		it('should add image as build tag if present', async () => {
 			const composition = await parse(
 				'test/fixtures/compose/services/image_build.yml',
@@ -1275,7 +1224,6 @@ describe('compose-go parsing & validation', () => {
 					'service.network.ipv6_address is not supported',
 				],
 				['pid.yml', 'service.pid service:${serviceName} is not supported'],
-				['volumes_from.yml', 'service.volumes_from is not supported'],
 			];
 			for (const [fixture, warning] of cases) {
 				warnStub.resetHistory();
