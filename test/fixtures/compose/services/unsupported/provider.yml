@@ -1,0 +1,6 @@
+services:
+  main:
+    provider:
+      type: model
+      options:
+        model: ai/smollm2
