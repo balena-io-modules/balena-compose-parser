@@ -35,7 +35,8 @@ const schema = yaml.DEFAULT_SCHEMA.extend({ implicit: [looksNumeric] });
  *
  * where `c = parse(file, { hostEnvironment: true })`. Interpolation has to be
  * off on the second parse, since a literal `$` that survived the first one is
- * meant to stay literal.
+ * meant to stay literal. Nothing in the output can enforce that; the builder
+ * endpoint that receives it does.
  *
  * @param composition - A composition returned by `parse()`
  * @returns YAML text for a docker-compose.yml
