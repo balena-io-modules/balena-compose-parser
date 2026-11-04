@@ -148,6 +148,9 @@ The output carries no `env_file`, `label_file`, `include` or `extends`, since
 `parse()` has already folded those in. Interpolation has to be off on the
 second parse, so that a literal `$` the first parse left alone stays literal.
 
+On Windows, `serialize()` writes `build.context` with `/` separators, and
+throws if the context is on a different drive from the compose file.
+
 ### Image Descriptors
 
 The `toImageDescriptors()` function converts a composition into descriptors that can be used for image operations:

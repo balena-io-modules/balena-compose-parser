@@ -1,6 +1,8 @@
 import * as yaml from 'js-yaml';
+import * as path from 'node:path';
 
 import { bracketIpv6HostIp } from './compose';
+import { ServiceError } from './errors';
 import type { Composition, Dict } from './types';
 
 // js-yaml only quotes a key when its own resolvers find it ambiguous, and
@@ -40,7 +42,9 @@ const schema = yaml.DEFAULT_SCHEMA.extend({ implicit: [looksNumeric] });
 export function serialize(composition: Composition): string {
 	const output: Dict<any> = structuredClone(composition);
 
-	for (const service of Object.values<Dict<any>>(output.services ?? {})) {
+	for (const [serviceName, service] of Object.entries<Dict<any>>(
+		output.services ?? {},
+	)) {
 		// `parse()` already folded these into `environment` and `labels`, and
 		// applied `extends`. Emitting them would make the builder reject the
 		// file as still referencing secondary files, so make sure they are gone
@@ -53,6 +57,12 @@ export function serialize(composition: Composition): string {
 		// as input, so drop it and let the second parse derive it again.
 		if (service.build != null) {
 			delete service.build.tags;
+			if (typeof service.build.context === 'string') {
+				service.build.context = toPosixBuildContext(
+					service.build.context,
+					serviceName,
+				);
+			}
 		}
 
 		if (Array.isArray(service.ports)) {
@@ -81,4 +91,17 @@ export function serialize(composition: Composition): string {
 		// same string. Keys are handled by the schema above.
 		forceQuotes: true,
 	});
+}
+
+// On Windows, parse() gives `services\api`, or `D:\api` for a context on
+// another drive. The builder needs a relative path with `/` separators.
+function toPosixBuildContext(context: string, serviceName: string): string {
+	const posix = context.replaceAll('\\', '/');
+	if (path.posix.isAbsolute(posix) || path.win32.isAbsolute(posix)) {
+		throw new ServiceError(
+			'service.build.context must be relative to the compose file',
+			serviceName,
+		);
+	}
+	return posix;
 }

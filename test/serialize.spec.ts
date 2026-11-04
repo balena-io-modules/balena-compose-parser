@@ -7,6 +7,7 @@ import { stub } from 'sinon';
 
 import { parse, serialize } from '../lib/index';
 import type { Composition, ParseOptions } from '../lib/index';
+import { ServiceError } from '../lib/errors';
 
 /**
  * Write the serialized composition to a fresh directory and parse it the way
@@ -109,6 +110,29 @@ describe('serialize', () => {
 			},
 		});
 		expect(out).to.not.match(/env_file|label_file|extends/);
+	});
+
+	it('writes a Windows build context with forward slashes', () => {
+		const out = serialize({
+			services: {
+				main: { build: { context: 'services\\api' } },
+				root: { build: { context: '.' } },
+			},
+		});
+		expect(out).to.include("context: 'services/api'");
+		expect(out).to.include("context: '.'");
+	});
+
+	it('rejects a build context it cannot make relative', () => {
+		for (const context of ['D:\\other', '/abs/other', '\\\\server\\share']) {
+			expect(
+				() =>
+					serialize({
+						services: { main: { build: { context } } },
+					}),
+				context,
+			).to.throw(ServiceError, 'service.build.context must be relative');
+		}
 	});
 
 	it('does not mutate its argument', () => {
