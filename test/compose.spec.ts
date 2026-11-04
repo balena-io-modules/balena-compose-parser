@@ -838,6 +838,27 @@ describe('compose-go parsing & validation', () => {
 			}
 		});
 
+		it('should reject a host IP without a host port', async () => {
+			for (const fixture of [
+				'ports_host_ip_short',
+				'ports_host_ip_short_ipv6',
+				'ports_host_ip_long',
+			]) {
+				try {
+					await parse(
+						`test/fixtures/compose/services/unsupported/${fixture}.yml`,
+					);
+					expect.fail(`Expected compose parser to reject ${fixture}`);
+				} catch (error) {
+					expect(error, fixture).to.be.instanceOf(ServiceError);
+					expect(error.message).to.equal(
+						'service.ports cannot set a host IP without a host port',
+					);
+					expect(error.serviceName).to.equal('main');
+				}
+			}
+		});
+
 		it('should parse restart policy', async () => {
 			const composition = await parse(
 				'test/fixtures/compose/services/restart.yml',

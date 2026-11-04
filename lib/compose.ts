@@ -475,7 +475,7 @@ function normalizeService(
 	/// compose-go converts all port definitions to long syntax, however legacy Supervisors don't support this.
 	/// TODO: Support this in Helios
 	if (service.ports) {
-		service.ports = longToShortSyntaxPorts(service.ports);
+		service.ports = longToShortSyntaxPorts(service.ports, serviceName);
 	}
 
 	// Convert long syntax depends_on to short syntax
@@ -673,6 +673,7 @@ function validateLabels(labels: Dict<any>) {
 
 function longToShortSyntaxPorts(
 	ports: NonNullable<Service['ports']>,
+	serviceName: string,
 ): string[] {
 	const shortSyntaxPorts: string[] = [];
 	const ignoredFields = ['name', 'app_protocol', 'mode'];
@@ -695,20 +696,20 @@ function longToShortSyntaxPorts(
 					delete (port as any)[field];
 				}
 			}
-			// Short syntax is `[HOST_IP:][HOST_PORT:]CONTAINER_PORT[/PROTOCOL]`,
-			// where a host address with no host port needs the empty segment kept
-			// (`127.0.0.1::80`) so that the address is not read as the host port.
+			// The Supervisor cannot parse `127.0.0.1::80`
+			if (port.host_ip && !port.published) {
+				throw new ServiceError(
+					'service.ports cannot set a host IP without a host port',
+					serviceName,
+				);
+			}
 			// An IPv6 address is left unbracketed (`::1:6001:6001`), which is the
 			// only form the Supervisor accepts; serialize() adds the brackets that
 			// compose-go needs.
-			const hostIp = port.host_ip;
-			const prefix = hostIp
-				? `${hostIp}:${port.published ?? ''}:`
-				: port.published
-					? `${port.published}:`
-					: '';
 			shortSyntaxPorts.push(
-				`${prefix}${port.target}` +
+				(port.host_ip ? `${port.host_ip}:` : '') +
+					(port.published ? `${port.published}:` : '') +
+					`${port.target}` +
 					// Only include protocol if it's not default (not TCP)
 					(port.protocol && port.protocol !== 'tcp' ? `/${port.protocol}` : ''),
 			);

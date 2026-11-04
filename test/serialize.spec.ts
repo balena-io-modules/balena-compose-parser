@@ -50,13 +50,12 @@ describe('serialize', () => {
 			services: {
 				main: {
 					image: 'alpine:latest',
-					ports: ['::1:6001:6001', '::1::6002', '127.0.0.1::80', '8080:80/udp'],
+					ports: ['::1:6001:6001', '127.0.0.1:8080:80', '8080:80/udp'],
 				},
 			},
 		});
 		expect(out).to.include("'[::1]:6001:6001'");
-		expect(out).to.include("'[::1]::6002'");
-		expect(out).to.include("'127.0.0.1::80'");
+		expect(out).to.include("'127.0.0.1:8080:80'");
 		expect(out).to.include("'8080:80/udp'");
 	});
 
@@ -353,7 +352,6 @@ volumes:
     ports:
       - "[::1]:8080:80"
       - "[::1]:8081:81/udp"
-      - "[::1]::82"
       - "[::]:83:83"
       - "[fe80::1]:84:84"
       - "[::ffff:127.0.0.1]:85:85"
