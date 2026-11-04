@@ -1,4 +1,6 @@
 import { expect } from 'chai';
+import { readdirSync } from 'node:fs';
+import { join, sep } from 'node:path';
 import type { SinonStub } from 'sinon';
 import { stub } from 'sinon';
 
@@ -20,6 +22,14 @@ async function reparse(
 		parse(file, options),
 	);
 }
+
+// Valid, but not on their own
+const NOT_STANDALONE = [
+	// Only valid merged onto their *-base.yml
+	/^compose\/merge\/.*-override(-\d+)?\.yml$/,
+	// Needs IMAGE_TAG and others set, which a test below does
+	/^compose\/interpolation\/compose\.yml$/,
+];
 
 describe('serialize', () => {
 	let warnStub: SinonStub;
@@ -145,60 +155,30 @@ describe('serialize', () => {
 	describe('parse → serialize → parse', () => {
 		// Everything parse() normalizes has to come out the same the second time
 		// round, or a release built from the folded file differs from what the
-		// CLI showed the user. Each fixture here exercises a different part of
-		// normalizeService / normalizeNetwork / normalizeVolume.
-		const fixtures = [
-			'test/fixtures/simple.yml',
-			'test/fixtures/complex.yml',
-			'test/fixtures/contracts/valid.yml',
-			'test/fixtures/compose/extensions.yml',
-			'test/fixtures/compose/fragments.yml',
-			'test/fixtures/compose/include/main.yml',
-			'test/fixtures/compose/build/context.yml',
-			'test/fixtures/compose/build/supported_fields.yml',
-			'test/fixtures/compose/networks/implicit_default.yml',
-			'test/fixtures/compose/networks/implicit_default_configured.yml',
-			'test/fixtures/compose/networks/implicit_default_multi_network.yml',
-			'test/fixtures/compose/networks/implicit_default_reference_config.yml',
-			'test/fixtures/compose/networks/supported_fields.yml',
-			'test/fixtures/compose/services/container_name.yml',
-			'test/fixtures/compose/services/env_file.yml',
-			'test/fixtures/compose/services/extends.yml',
-			'test/fixtures/compose/services/extends_2.yml',
-			'test/fixtures/compose/services/full.yml',
-			'test/fixtures/compose/services/image_build.yml',
-			'test/fixtures/compose/services/ipc_host.yml',
-			'test/fixtures/compose/services/label_file.yml',
-			'test/fixtures/compose/services/network_mode.yml',
-			'test/fixtures/compose/services/networks.yml',
-			'test/fixtures/compose/services/newly_supported.yml',
-			'test/fixtures/compose/services/no_newly_supported.yml',
-			'test/fixtures/compose/services/null_env.yml',
-			'test/fixtures/compose/services/pid.yml',
-			'test/fixtures/compose/services/ports.yml',
-			'test/fixtures/compose/services/ports_ignored.yml',
-			'test/fixtures/compose/services/profiles.yml',
-			'test/fixtures/compose/services/restart.yml',
-			'test/fixtures/compose/services/security_opt_supported.yml',
-			'test/fixtures/compose/services/volumes.yml',
-			'test/fixtures/compose/services/volumes_allowed_bind_mount.yml',
-			'test/fixtures/compose/services/volumes_allowed_bind_mount_partial.yml',
-			'test/fixtures/compose/services/volumes_from.yml',
-			'test/fixtures/compose/volumes/null.yml',
-			'test/fixtures/compose/volumes/supported_fields.yml',
-			'test/fixtures/parse-options/host-env.yml',
-			'test/fixtures/secondary-files/extends-file.yml',
-			'test/fixtures/secondary-files/extends-local.yml',
-			'test/fixtures/secondary-files/include.yml',
-			'test/fixtures/secondary-files/interpolated.yml',
-			'test/fixtures/secondary-files/label_file.yml',
-			'test/fixtures/secondary-files/long-form.yml',
-			'test/fixtures/secondary-files/traversal.yml',
-		];
+		// CLI showed the user. Only a fixture under unsupported/ may be rejected.
+		const fixtures = readdirSync('test/fixtures', { recursive: true })
+			.map((file) => String(file).split(sep).join('/'))
+			.filter(
+				(file) =>
+					/\.ya?ml$/.test(file) &&
+					!NOT_STANDALONE.some((pattern) => pattern.test(file)),
+			)
+			.sort();
 
 		for (const fixture of fixtures) {
-			it(`round-trips ${fixture}`, async () => {
-				const original = await parse(fixture, { hostEnvironment: true });
+			const mayBeRejected = fixture.split('/').includes('unsupported');
+			it(`round-trips ${fixture}`, async function () {
+				let original: Composition;
+				try {
+					original = await parse(join('test/fixtures', fixture), {
+						hostEnvironment: true,
+					});
+				} catch (error) {
+					if (!mayBeRejected) {
+						throw error;
+					}
+					this.skip();
+				}
 				const reparsed = await reparse(original);
 				expect(reparsed).to.deep.equal(original);
 			});

@@ -28,7 +28,8 @@ const schema = yaml.DEFAULT_SCHEMA.extend({ implicit: [looksNumeric] });
  * outside the file. What the user's shell resolved stays resolved, and the
  * builder never has to find a secondary file or share its own environment.
  *
- * Round-trip property, checked in test/serialize.spec.ts for every fixture:
+ * Round-trip property, checked in test/serialize.spec.ts for every fixture
+ * that parse() accepts:
  *
  *     parse(serialize(c), { skipInterpolation: true })  deep-equals  c
  *
