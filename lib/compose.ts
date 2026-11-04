@@ -309,8 +309,10 @@ export const SERVICE_CONFIG_DENY_LIST = [
 	'logging',
 	'mem_swappiness',
 	'memswap_limit',
+	'models',
 	'oom_kill_disable',
 	'platform',
+	'provider',
 	'pull_policy',
 	'runtime',
 	'scale',
@@ -475,7 +477,7 @@ function normalizeService(
 	/// compose-go converts all port definitions to long syntax, however legacy Supervisors don't support this.
 	/// TODO: Support this in Helios
 	if (service.ports) {
-		service.ports = longToShortSyntaxPorts(service.ports);
+		service.ports = longToShortSyntaxPorts(service.ports, serviceName);
 	}
 
 	// Convert long syntax depends_on to short syntax
@@ -673,6 +675,7 @@ function validateLabels(labels: Dict<any>) {
 
 function longToShortSyntaxPorts(
 	ports: NonNullable<Service['ports']>,
+	serviceName: string,
 ): string[] {
 	const shortSyntaxPorts: string[] = [];
 	const ignoredFields = ['name', 'app_protocol', 'mode'];
@@ -695,11 +698,22 @@ function longToShortSyntaxPorts(
 					delete (port as any)[field];
 				}
 			}
+			// The Supervisor cannot parse `127.0.0.1::80`
+			if (port.host_ip && !port.published) {
+				throw new ServiceError(
+					'service.ports cannot set a host IP without a host port',
+					serviceName,
+				);
+			}
+			// An IPv6 address is left unbracketed (`::1:6001:6001`), which is the
+			// only form the Supervisor accepts; serialize() adds the brackets that
+			// compose-go needs.
 			shortSyntaxPorts.push(
 				(port.host_ip ? `${port.host_ip}:` : '') +
-					`${port.published ? `${port.published}:` : ''}${port.target}` +
+					(port.published ? `${port.published}:` : '') +
+					`${port.target}` +
 					// Only include protocol if it's not default (not TCP)
-					(port.protocol !== 'tcp' ? `/${port.protocol}` : ''),
+					(port.protocol && port.protocol !== 'tcp' ? `/${port.protocol}` : ''),
 			);
 		}
 	}
@@ -835,6 +849,25 @@ function longToShortSyntaxVolumes(
 	}
 
 	return { shortSyntaxVolumes, shortSyntaxTmpfs };
+}
+
+/**
+ * Put the brackets back on an IPv6 host address in a short-syntax port, which
+ * `longToShortSyntaxPorts` above leaves bare (`::1:6001:6001`) because that is
+ * the only form the Supervisor accepts, while compose-go insists on
+ * `[::1]:6001:6001`. The last two segments are always the host port and the
+ * container port, so anything before them is the address. Kept next to the
+ * formatter so that the two read the same grammar.
+ */
+export function bracketIpv6HostIp(port: unknown): unknown {
+	if (typeof port !== 'string') {
+		return port;
+	}
+	const match = /^(.+):([^:]*):([^:]+)$/.exec(port);
+	if (match == null || !match[1].includes(':') || match[1].startsWith('[')) {
+		return port;
+	}
+	return `[${match[1]}]:${match[2]}:${match[3]}`;
 }
 
 export const NETWORK_CONFIG_DENY_LIST = ['attachable', 'external'];

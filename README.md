@@ -125,6 +125,36 @@ point. An untrusted file can name any path this process can read, including
 Both defaults were effectively on before v1.0.0, so a caller relying on either
 has to say so now.
 
+### Serializing
+
+`serialize()` writes a parsed composition back out as a single, self-contained
+`docker-compose.yml`. Pair it with the parse options above to move a compose
+file from a machine that can resolve it to one that must not try.
+
+```typescript
+import * as fs from 'node:fs/promises';
+import { parse, serialize } from '@balena/compose-parser';
+
+// On the user's machine: resolve everything against their environment and files
+const composition = await parse('docker-compose.yml', { hostEnvironment: true });
+await fs.writeFile('folded.yml', serialize(composition));
+
+// On the builder: re-read it without touching the environment or the filesystem
+const reparsed = await parse('folded.yml', { skipInterpolation: true });
+// deep-equals `composition`
+```
+
+The output carries no `env_file`, `label_file`, `include` or `extends`, since
+`parse()` has already folded those in.
+
+Whatever reads the output **must** parse it with `skipInterpolation: true`.
+Values were already interpolated on the first parse, and a `$` still in the
+output is meant literally; interpolating again would change it, or fill it from
+the reader's own environment.
+
+On Windows, `serialize()` writes `build.context` with `/` separators, and
+throws if the context is on a different drive from the compose file.
+
 ### Image Descriptors
 
 The `toImageDescriptors()` function converts a composition into descriptors that can be used for image operations:

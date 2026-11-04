@@ -1,0 +1,6 @@
+services:
+  main:
+    image: alpine:latest
+    ports:
+      - target: 9092
+        host_ip: 127.0.0.3

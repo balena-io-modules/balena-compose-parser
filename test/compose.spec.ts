@@ -145,7 +145,7 @@ describe('compose-go parsing & validation', () => {
 
 		it('should reject top-level secrets', async () => {
 			try {
-				await parse('test/fixtures/compose/secrets.yml');
+				await parse('test/fixtures/compose/unsupported/secrets.yml');
 				expect.fail('Expected compose parser to reject top-level secrets');
 			} catch (error) {
 				expect(error).to.be.instanceOf(ComposeError);
@@ -157,7 +157,7 @@ describe('compose-go parsing & validation', () => {
 
 		it('should reject top-level configs', async () => {
 			try {
-				await parse('test/fixtures/compose/configs.yml');
+				await parse('test/fixtures/compose/unsupported/configs.yml');
 				expect.fail('Expected compose parser to reject top-level configs');
 			} catch (error) {
 				expect(error).to.be.instanceOf(ComposeError);
@@ -362,7 +362,7 @@ describe('compose-go parsing & validation', () => {
 		it('should error on long syntax depends_on config', async () => {
 			try {
 				await parse(
-					'test/fixtures/compose/services/depends_on_long_syntax.yml',
+					'test/fixtures/compose/services/unsupported/depends_on_long_syntax.yml',
 				);
 				expect.fail(
 					'Expected compose parser to error on long syntax depends_on config',
@@ -476,9 +476,12 @@ describe('compose-go parsing & validation', () => {
 
 		it('should error if extends references a nonexistent file', async () => {
 			try {
-				await parse('test/fixtures/compose/services/extends_nonexistent.yml', {
-					hostEnvironment: true,
-				});
+				await parse(
+					'test/fixtures/compose/services/unsupported/extends_nonexistent.yml',
+					{
+						hostEnvironment: true,
+					},
+				);
 				expect.fail(
 					'Expected compose parser to error if extends references a nonexistent file',
 				);
@@ -491,7 +494,9 @@ describe('compose-go parsing & validation', () => {
 		});
 
 		it.skip('should inject a service dependency if ipc:service:${serviceName} is defined', async () => {
-			const composition = await parse('test/fixtures/compose/services/ipc.yml');
+			const composition = await parse(
+				'test/fixtures/compose/services/unsupported/ipc.yml',
+			);
 
 			expect(composition).to.deep.equal({
 				services: {
@@ -526,7 +531,7 @@ describe('compose-go parsing & validation', () => {
 
 		it('should reject service.ipc which references service:${serviceName}', async () => {
 			try {
-				await parse('test/fixtures/compose/services/ipc.yml');
+				await parse('test/fixtures/compose/services/unsupported/ipc.yml');
 				expect.fail(
 					'Expected compose parser to reject service.ipc which references service:${serviceName}',
 				);
@@ -835,6 +840,27 @@ describe('compose-go parsing & validation', () => {
 				expect(error.message).to.equal(
 					'Failed to parse compose file: Invalid proto: tc',
 				);
+			}
+		});
+
+		it('should reject a host IP without a host port', async () => {
+			for (const fixture of [
+				'ports_host_ip_short',
+				'ports_host_ip_short_ipv6',
+				'ports_host_ip_long',
+			]) {
+				try {
+					await parse(
+						`test/fixtures/compose/services/unsupported/${fixture}.yml`,
+					);
+					expect.fail(`Expected compose parser to reject ${fixture}`);
+				} catch (error) {
+					expect(error, fixture).to.be.instanceOf(ServiceError);
+					expect(error.message).to.equal(
+						'service.ports cannot set a host IP without a host port',
+					);
+					expect(error.serviceName).to.equal('main');
+				}
 			}
 		});
 
@@ -1377,7 +1403,9 @@ describe('compose-go parsing & validation', () => {
 
 		it('should reject remote build context', async () => {
 			try {
-				await parse('test/fixtures/compose/build/context_remote.yml');
+				await parse(
+					'test/fixtures/compose/build/unsupported/context_remote.yml',
+				);
 				expect.fail('Expected compose parser to reject remote build context');
 			} catch (error) {
 				expect(error).to.be.instanceOf(ServiceError);
@@ -2272,7 +2300,9 @@ describe('compose-go parsing & validation', () => {
 
 		it('should reject if label `io.balena.features.requires.sw.supervisor` uses a wrong version range', async () => {
 			try {
-				await parse('test/fixtures/contracts/invalid_sw_supervisor.yml');
+				await parse(
+					'test/fixtures/contracts/unsupported/invalid_sw_supervisor.yml',
+				);
 				expect.fail(
 					'Expected compose parser to throw if label `io.balena.features.requires.sw.supervisor` uses a wrong version range',
 				);
@@ -2286,7 +2316,7 @@ describe('compose-go parsing & validation', () => {
 
 		it('should reject if label `io.balena.features.requires.sw.l4t` uses a wrong version range', async () => {
 			try {
-				await parse('test/fixtures/contracts/invalid_sw_l4t.yml');
+				await parse('test/fixtures/contracts/unsupported/invalid_sw_l4t.yml');
 				expect.fail(
 					'Expected compose parser to throw if label `io.balena.features.requires.sw.l4t` uses a wrong version range',
 				);
@@ -2300,7 +2330,7 @@ describe('compose-go parsing & validation', () => {
 
 		it('should reject if label `io.balena.features.requires.arch.sw` uses an invalid architecture', async () => {
 			try {
-				await parse('test/fixtures/contracts/invalid_arch_sw.yml');
+				await parse('test/fixtures/contracts/unsupported/invalid_arch_sw.yml');
 				expect.fail(
 					'Expected compose parser to throw if label `io.balena.features.requires.arch.sw` uses an invalid architecture',
 				);
@@ -2314,7 +2344,9 @@ describe('compose-go parsing & validation', () => {
 
 		it('should reject if label `io.balena.features.requires.sw.balena-os` uses a wrong version range', async () => {
 			try {
-				await parse('test/fixtures/contracts/invalid_sw_balena_os.yml');
+				await parse(
+					'test/fixtures/contracts/unsupported/invalid_sw_balena_os.yml',
+				);
 				expect.fail(
 					'Expected compose parser to throw if label `io.balena.features.requires.sw.balena-os` uses a wrong version range',
 				);
@@ -2328,7 +2360,7 @@ describe('compose-go parsing & validation', () => {
 
 		it('should reject if label `io.balena.features.requires.sw.linux` uses a wrong version range', async () => {
 			try {
-				await parse('test/fixtures/contracts/invalid_sw_linux.yml');
+				await parse('test/fixtures/contracts/unsupported/invalid_sw_linux.yml');
 				expect.fail(
 					'Expected compose parser to throw if label `io.balena.features.requires.sw.linux` uses a wrong version range',
 				);
