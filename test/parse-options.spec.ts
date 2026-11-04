@@ -4,6 +4,7 @@ import * as path from 'path';
 import { promisify } from 'util';
 
 import { parse } from '../lib/compose';
+import { setEnv } from './helpers';
 
 const execFileAsync = promisify(execFile);
 
@@ -11,19 +12,14 @@ const FIXTURE = 'test/fixtures/parse-options/host-env.yml';
 const SECRET = 'hunter2-supersecret';
 
 describe('parse options', () => {
-	let previous: string | undefined;
+	let restoreEnv: () => void;
 
 	beforeEach(() => {
-		previous = process.env.SECRET_BALENA_PASSWORD;
-		process.env.SECRET_BALENA_PASSWORD = SECRET;
+		restoreEnv = setEnv({ SECRET_BALENA_PASSWORD: SECRET });
 	});
 
 	afterEach(() => {
-		if (previous === undefined) {
-			delete process.env.SECRET_BALENA_PASSWORD;
-		} else {
-			process.env.SECRET_BALENA_PASSWORD = previous;
-		}
+		restoreEnv();
 	});
 
 	describe('hostEnvironment', () => {

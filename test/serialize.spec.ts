@@ -1,13 +1,11 @@
 import { expect } from 'chai';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import type { SinonStub } from 'sinon';
 import { stub } from 'sinon';
 
 import { parse, serialize } from '../lib/index';
 import type { Composition, ParseOptions } from '../lib/index';
 import { ServiceError } from '../lib/errors';
+import { setEnv, withComposeFile, withEnv } from './helpers';
 
 /**
  * Write the serialized composition to a fresh directory and parse it the way
@@ -18,14 +16,9 @@ async function reparse(
 	composition: Composition,
 	options: ParseOptions = { skipInterpolation: true },
 ): Promise<Composition> {
-	const dir = await mkdtemp(join(tmpdir(), 'compose-parser-serialize-'));
-	try {
-		const file = join(dir, 'docker-compose.yml');
-		await writeFile(file, serialize(composition), 'utf8');
-		return await parse(file, options);
-	} finally {
-		await rm(dir, { recursive: true, force: true });
-	}
+	return withComposeFile(serialize(composition), (file) =>
+		parse(file, options),
+	);
 }
 
 describe('serialize', () => {
@@ -235,9 +228,7 @@ describe('serialize', () => {
 
 		it('keeps a value the first parse took from the host environment', async () => {
 			const key = 'SECRET_BALENA_PASSWORD';
-			const previous = process.env[key];
-			process.env[key] = 'from-the-cli';
-			try {
+			await withEnv({ [key]: 'from-the-cli' }, async () => {
 				const original = await parse(
 					'test/fixtures/parse-options/host-env.yml',
 					{ hostEnvironment: true },
@@ -249,19 +240,13 @@ describe('serialize', () => {
 
 				// Now the builder's side, with a different value in its environment
 				// that must not leak in.
-				process.env[key] = 'from-the-builder';
+				setEnv({ [key]: 'from-the-builder' });
 				const reparsed = await reparse(original);
 				expect(reparsed.services.app.environment).to.deep.equal({
 					[key]: 'from-the-cli',
 					INTERPOLATED: 'from-the-cli',
 				});
-			} finally {
-				if (previous === undefined) {
-					delete process.env[key];
-				} else {
-					process.env[key] = previous;
-				}
-			}
+			});
 		});
 
 		it('carries interpolated values, which are not interpolated again', async () => {
@@ -271,11 +256,7 @@ describe('serialize', () => {
 				APP_ENV: 'production',
 				DB_NAME: 'myapp_db',
 			};
-			const previous = Object.fromEntries(
-				Object.keys(vars).map((key) => [key, process.env[key]]),
-			);
-			Object.assign(process.env, vars);
-			try {
+			await withEnv(vars, async () => {
 				const original = await parse(
 					'test/fixtures/compose/interpolation/compose.yml',
 					{ hostEnvironment: true },
@@ -283,18 +264,10 @@ describe('serialize', () => {
 				expect(original.services.main.ports).to.deep.equal(['8080:8080']);
 
 				// Different values on the builder, none of which may show through
-				Object.assign(process.env, { IMAGE_TAG: 'x', APP_PORT: '1' });
+				setEnv({ IMAGE_TAG: 'x', APP_PORT: '1' });
 				const reparsed = await reparse(original);
 				expect(reparsed).to.deep.equal(original);
-			} finally {
-				for (const [key, value] of Object.entries(previous)) {
-					if (value === undefined) {
-						delete process.env[key];
-					} else {
-						process.env[key] = value;
-					}
-				}
-			}
+			});
 		});
 
 		it('keeps a literal dollar sign literal when interpolation is off', async () => {
@@ -332,12 +305,8 @@ describe('serialize', () => {
 		it('keeps map keys and names that yaml.v3 would read as numbers', async () => {
 			// Same problem as above, but for keys, which js-yaml's forceQuotes
 			// does not touch. Without quoting, compose-go reports a non-string key.
-			const dir = await mkdtemp(join(tmpdir(), 'compose-parser-serialize-'));
-			try {
-				const file = join(dir, 'docker-compose.yml');
-				await writeFile(
-					file,
-					`services:
+			await withComposeFile(
+				`services:
   "1_0":
     image: alpine:latest
     environment: { "1_000": a, "0x_1": b, "+.5": c, "1e1_0": d }
@@ -349,28 +318,23 @@ networks:
 volumes:
   "1_0": { driver_opts: { "1_": i } }
 `,
-				);
-				const original = await parse(file, { hostEnvironment: true });
-				expect(original.services['1_0'].environment).to.have.all.keys(
-					'1_000',
-					'0x_1',
-					'+.5',
-					'1e1_0',
-				);
-				const reparsed = await reparse(original);
-				expect(reparsed).to.deep.equal(original);
-			} finally {
-				await rm(dir, { recursive: true, force: true });
-			}
+				async (file) => {
+					const original = await parse(file, { hostEnvironment: true });
+					expect(original.services['1_0'].environment).to.have.all.keys(
+						'1_000',
+						'0x_1',
+						'+.5',
+						'1e1_0',
+					);
+					const reparsed = await reparse(original);
+					expect(reparsed).to.deep.equal(original);
+				},
+			);
 		});
 
 		it('round-trips every IPv6 host address form', async () => {
-			const dir = await mkdtemp(join(tmpdir(), 'compose-parser-serialize-'));
-			try {
-				const file = join(dir, 'docker-compose.yml');
-				await writeFile(
-					file,
-					`services:
+			await withComposeFile(
+				`services:
   main:
     image: alpine:latest
     ports:
@@ -385,17 +349,16 @@ volumes:
         host_ip: "::1"
         protocol: udp
 `,
-				);
-				const original = await parse(file, { hostEnvironment: true });
-				// The Supervisor form, bare
-				expect(original.services.main.ports).to.include('::1:8080:80');
-				expect(original.services.main.ports).to.include(':::83:83');
-				expect(original.services.main.ports).to.include('::1:8700:87/udp');
-				const reparsed = await reparse(original);
-				expect(reparsed).to.deep.equal(original);
-			} finally {
-				await rm(dir, { recursive: true, force: true });
-			}
+				async (file) => {
+					const original = await parse(file, { hostEnvironment: true });
+					// The Supervisor form, bare
+					expect(original.services.main.ports).to.include('::1:8080:80');
+					expect(original.services.main.ports).to.include(':::83:83');
+					expect(original.services.main.ports).to.include('::1:8700:87/udp');
+					const reparsed = await reparse(original);
+					expect(reparsed).to.deep.equal(original);
+				},
+			);
 		});
 
 		it('keeps multi-line strings and whitespace exactly', async () => {
