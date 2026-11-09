@@ -1,12 +1,13 @@
 import { expect } from 'chai';
 import { readdirSync } from 'node:fs';
-import { join, sep } from 'node:path';
+import { join, posix, sep, win32 } from 'node:path';
 import type { SinonStub } from 'sinon';
 import { stub } from 'sinon';
 
 import { parse, serialize } from '../lib/index';
 import type { Composition, ParseOptions } from '../lib/index';
 import { ServiceError } from '../lib/errors';
+import { toPosixBuildContext } from '../lib/serialize';
 import { setEnv, withComposeFile, withEnv } from './helpers';
 
 /**
@@ -116,26 +117,31 @@ describe('serialize', () => {
 	});
 
 	it('writes a Windows build context with forward slashes', () => {
-		const out = serialize({
-			services: {
-				main: { build: { context: 'services\\api' } },
-				root: { build: { context: '.' } },
-			},
-		});
-		expect(out).to.include("context: 'services/api'");
-		expect(out).to.include("context: '.'");
+		expect(toPosixBuildContext('services\\api', 'main', win32)).to.equal(
+			'services/api',
+		);
+		expect(toPosixBuildContext('.', 'main', win32)).to.equal('.');
+	});
+
+	it('keeps a backslash in a POSIX build context', () => {
+		expect(toPosixBuildContext('foo\\bar', 'main', posix)).to.equal('foo\\bar');
 	});
 
 	it('rejects a build context it cannot make relative', () => {
-		for (const context of ['D:\\other', '/abs/other', '\\\\server\\share']) {
+		const cases = [
+			['D:\\other', win32],
+			['\\\\server\\share', win32],
+			['/abs/other', posix],
+		] as const;
+		for (const [context, pathImpl] of cases) {
 			expect(
-				() =>
-					serialize({
-						services: { main: { build: { context } } },
-					}),
+				() => toPosixBuildContext(context, 'main', pathImpl),
 				context,
 			).to.throw(ServiceError, 'service.build.context must be relative');
 		}
+		expect(() =>
+			serialize({ services: { main: { build: { context: '/abs/other' } } } }),
+		).to.throw(ServiceError, 'service.build.context must be relative');
 	});
 
 	it('does not mutate its argument', () => {

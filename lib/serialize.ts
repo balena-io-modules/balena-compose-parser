@@ -96,14 +96,19 @@ export function serialize(composition: Composition): string {
 }
 
 // On Windows, parse() gives `services\api`, or `D:\api` for a context on
-// another drive. The builder needs a relative path with `/` separators.
-function toPosixBuildContext(context: string, serviceName: string): string {
-	const posix = context.replaceAll('\\', '/');
-	if (path.posix.isAbsolute(posix) || path.win32.isAbsolute(posix)) {
+// another drive. The builder needs a relative path with `/` separators. Only
+// the platform's own separator is converted, since `\` is legal in a POSIX
+// file name.
+export function toPosixBuildContext(
+	context: string,
+	serviceName: string,
+	pathImpl: path.PlatformPath = path,
+): string {
+	if (pathImpl.isAbsolute(context)) {
 		throw new ServiceError(
 			'service.build.context must be relative to the compose file',
 			serviceName,
 		);
 	}
-	return posix;
+	return context.split(pathImpl.sep).join('/');
 }
