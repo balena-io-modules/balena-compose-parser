@@ -1,3 +1,5 @@
+// js-yaml is pinned on v4 as v5 does not support `forceQuotes`, `Type` and
+// `DEFAULT_SCHEMA`.
 import * as yaml from 'js-yaml';
 import * as path from 'node:path';
 
