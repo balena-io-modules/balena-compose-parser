@@ -1,4 +1,118 @@
 - commits:
+    - subject: Note why js-yaml is pinned on v4
+      hash: 75e2efb6d99eaa72cf1afaf19f39b6cb2f2e2cc0
+      body: |
+        - v5 does not support forceQuotes, Type and DEFAULT_SCHEMA, which
+          serialize() relies on
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+    - subject: Convert only the platform separator in build.context
+      hash: 5befb41ea84e6b463d919bd359a11143864a772b
+      body: |
+        A backslash is legal in a POSIX file name, so replacing every `\` with
+        `/` turned a Linux context like `foo\bar` into a different path.
+        Split on path.sep instead, and check absoluteness with the same
+        platform's path module.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+    - subject: Document that serialize() output must not be interpolated
+      hash: d79c62b4d0ae84da7fa53e84bd30ba573be749a1
+      body: |
+        A `$` left in the output is meant literally. Document that
+        readers must parse with `skipInterpolation: true`, and in the
+        docstring that the builder endpoint is what enforces it.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+    - subject: Round-trip every fixture parse() accepts
+      hash: 4ff78a24ac5a20049f6dacd003366c849cb898a4
+      body: |
+        The hand-picked list had already missed merge/*, name.yml,
+        multi-document.yml and others. Glob test/fixtures instead. Only a
+        fixture under unsupported/ may be rejected and skipped; any other
+        must parse and round-trip.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+    - subject: Move rejection fixtures under unsupported/
+      hash: cfe47b3b7d681bdfc3a186e58b005b8fda2e994c
+      body: |
+        So that a fixture's directory says whether parse() should accept it.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+    - subject: Extract withComposeFile and withEnv test helpers
+      hash: 8e9a1a973ac9e3b713b2fb9684b096b4ce5a068c
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+    - subject: Write build.context with POSIX separators in serialize()
+      hash: 14b8531c36fc9a9b556090415e224269d1e5a7d0
+      body: |
+        parse() makes build.context relative with path.relative, which on
+        Windows gives `services\api`, or an absolute `D:\...` path for a
+        context on another drive. Write it with `/` separators for the
+        builder, and reject one that is still absolute.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+    - subject: Deny service.models and service.provider
+      hash: ccf4da2fa09d5c7348d2e4bd2b1883deaaccb0be
+      body: |
+        We do not currently support either, further shaping
+        is needed if we do intend to support them in the future.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+    - subject: Reject a host IP without a host port
+      hash: 15a0401169c521e5c36dfe810768c1610bc76479
+      body: |
+        `127.0.0.1::80` gets past compose-go, but the Supervisor's port
+        parsing reads the empty host port as NaN and rejects it, so the
+        failure would only surface on the device. Throw at parse time
+        short and long syntax ports..
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+    - subject: Add serialize() to write a composition back out as YAML
+      hash: 64bd0e7d01ced3f7d476f89ef8d673114b927f91
+      body: |
+        - Emits a single self-contained compose file with env_file, label_file
+          and extends dropped and build.tags left for parse() to derive
+        - Quotes values and keys that yaml.v3 would otherwise read as numbers
+        - Round-trips through parse() with interpolation off and no host env,
+          which is what the builder's /v4 endpoint runs
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Christina Ying Wang
+    - subject: Fix short syntax for ports with a host IP
+      hash: 7135851a5b21e591df993fa1de3ae5f7e67eaf1b
+      body: |
+        - Keep the empty host port segment (`ip::target`) so the address
+          is not read as the host port
+        - Leave out the protocol when it is not set, rather than
+          emitting `/undefined`
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+  version: 1.1.0
+  title: ""
+  date: 2026-11-11T04:11:58.530Z
+- commits:
     - subject: Document the parse options in the README
       hash: 6d78b4d2634f49e40d8be535040c857c2c1d85d9
       body: >
