@@ -1,4 +1,5 @@
 import { parse, toImageDescriptors } from './compose';
+import { serialize } from './serialize';
 import type { ParseOptions } from './compose';
 import { createContractFromLabels } from './contracts';
 import type { ContractParser } from './contracts';
@@ -21,6 +22,7 @@ import {
 
 export {
 	parse,
+	serialize,
 	toImageDescriptors,
 	createContractFromLabels,
 	Composition,
