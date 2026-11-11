@@ -284,7 +284,8 @@ describe('createContractFromLabels', () => {
 		});
 	});
 
-	it('should add sw.spec/compose contract for services with newly supported fields', () => {
+	// TEMPORARY: sw.spec/compose requirement is disabled for e2e testing; restore the requirement test with the patch revert
+	it('should not add sw.spec/compose contract for newly supported fields (TEMPORARY)', () => {
 		const composition: Composition = {
 			services: {
 				app: {
@@ -294,11 +295,7 @@ describe('createContractFromLabels', () => {
 			},
 		};
 		const descriptors = toImageDescriptors(composition);
-		expect(descriptors[0].contract).to.deep.equal({
-			type: 'sw.container',
-			slug: 'contract-for-app',
-			requires: [{ type: 'sw.spec', slug: 'compose', version: '>=2' }],
-		});
+		expect(descriptors[0].contract).to.be.undefined;
 	});
 
 	it('should not add sw.spec/compose contract for services without newly supported fields', () => {
@@ -314,7 +311,8 @@ describe('createContractFromLabels', () => {
 		expect(descriptors[0].contract).to.be.undefined;
 	});
 
-	it('should merge sw.spec/compose contract with existing contract requirements', () => {
+	// TEMPORARY: sw.spec/compose requirement is disabled for e2e testing; restore the merge test with the patch revert
+	it('should keep existing contract requirements without sw.spec/compose (TEMPORARY)', () => {
 		const composition: Composition = {
 			services: {
 				app: {
@@ -330,10 +328,7 @@ describe('createContractFromLabels', () => {
 		expect(descriptors[0].contract).to.deep.equal({
 			type: 'sw.container',
 			slug: 'contract-for-app',
-			requires: [
-				{ type: 'sw.supervisor', version: '>=16.0.0' },
-				{ type: 'sw.spec', slug: 'compose', version: '>=2' },
-			],
+			requires: [{ type: 'sw.supervisor', version: '>=16.0.0' }],
 		});
 	});
 });
