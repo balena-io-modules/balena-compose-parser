@@ -1,0 +1,20 @@
+services:
+  annotated:
+    image: alpine:latest
+    annotations:
+      com.example.annotation: value
+  runtime:
+    image: alpine:latest
+    runtime: runc
+  labelled:
+    image: alpine:latest
+    runtime: runc
+    labels:
+      io.balena.features.requires.sw.supervisor: '>=20.0.0'
+  required:
+    image: alpine:latest
+    runtime: runc
+    labels:
+      io.balena.features.optional: 'false'
+  plain:
+    image: alpine:latest

@@ -6,7 +6,9 @@ import { toImageDescriptors, createContractFromLabels } from '../lib/index';
 import type { Composition, ContractParser, Service } from '../lib/index';
 import {
 	usesNewComposeFields,
+	usesSupervisorGatedFields,
 	NEW_COMPOSE_SERVICE_FIELDS,
+	SUPERVISOR_GATED_SERVICE_FIELDS,
 } from '../lib/legacy';
 
 describe('toImageDescriptors', () => {
@@ -292,7 +294,7 @@ describe('createContractFromLabels', () => {
 	// 		services: {
 	// 			app: {
 	// 				image: 'myapp:latest',
-	// 				annotations: { 'com.example': 'value' },
+	// 				uts: 'host',
 	// 			},
 	// 		},
 	// 	};
@@ -322,7 +324,7 @@ describe('createContractFromLabels', () => {
 	// 		services: {
 	// 			app: {
 	// 				image: 'myapp:latest',
-	// 				annotations: { 'com.example': 'value' },
+	// 				uts: 'host',
 	// 				labels: {
 	// 					'io.balena.features.requires.sw.supervisor': '>=16.0.0',
 	// 				},
@@ -445,5 +447,29 @@ describe('usesNewComposeFields', () => {
 			},
 		};
 		expect(usesNewComposeFields(service)).to.equal(false);
+	});
+});
+
+describe('usesSupervisorGatedFields', () => {
+	it('should return true for each Supervisor-gated service field', () => {
+		for (const field of SUPERVISOR_GATED_SERVICE_FIELDS) {
+			const service: Service = { [field]: 'test-value' };
+			expect(usesSupervisorGatedFields(service)).to.equal(
+				true,
+				`expected usesSupervisorGatedFields to return true for field "${field}"`,
+			);
+		}
+	});
+
+	it('should return false for a service with no Supervisor-gated fields', () => {
+		const service: Service = { image: 'alpine:latest', uts: 'host' };
+		expect(usesSupervisorGatedFields(service)).to.equal(false);
+	});
+
+	it('should return false for empty annotations', () => {
+		expect(usesSupervisorGatedFields({ annotations: {} })).to.equal(false);
+		expect(usesSupervisorGatedFields({ annotations: [] as any })).to.equal(
+			false,
+		);
 	});
 });

@@ -194,9 +194,9 @@ describe('compose-go parsing & validation', () => {
 					main: {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
-						// annotations: { // Newly supported, rejected until Supervisor support lands
-						// 'com.example.annotation': 'value',
-						// },
+						annotations: {
+							'com.example.annotation': 'value',
+						},
 						// cgroup: 'host', // Newly supported, rejected until Supervisor support lands
 						// cpu_rt_runtime: 100000, // Newly supported, rejected until Supervisor support lands
 						// cpu_rt_period: 100000, // Newly supported, rejected until Supervisor support lands
@@ -237,6 +237,7 @@ describe('compose-go parsing & validation', () => {
 						pids_limit: 50,
 						privileged: true,
 						read_only: true,
+						runtime: 'runc',
 						security_opt: ['no-new-privileges'],
 						shm_size: '1073741824',
 						stop_grace_period: '3s',
@@ -261,9 +262,9 @@ describe('compose-go parsing & validation', () => {
 					one: {
 						image: 'alpine:latest',
 						command: ['sh', '-c', 'sleep infinity'],
-						// annotations: { // Newly supported, rejected until Supervisor support lands
-						// 'com.example.annotation2': 'value2',
-						// },
+						annotations: {
+							'com.example.annotation2': 'value2',
+						},
 						dns: ['8.8.8.8', '8.8.4.4'],
 						entrypoint: [
 							'php',
@@ -1242,7 +1243,7 @@ describe('compose-go parsing & validation', () => {
 
 		it('should reject newly supported compose fields', async () => {
 			const cases: Array<[string, string]> = [
-				['newly_supported_fields.yml', 'service.annotations is not supported'],
+				['newly_supported_fields.yml', 'service.uts is not supported'],
 				[
 					'newly_supported_healthcheck.yml',
 					'service.healthcheck.start_interval is not supported',
@@ -1266,6 +1267,51 @@ describe('compose-go parsing & validation', () => {
 					expect(warnStub.lastCall.args[0]).to.equal(warning);
 				}
 			}
+		});
+
+		it('should add sw.supervisor contract if annotations or runtime are present', async () => {
+			const composition = await parse(
+				'test/fixtures/compose/services/supervisor_gated.yml',
+			);
+			const descriptors = toImageDescriptors(composition);
+			const contractOf = (name: string) =>
+				descriptors.find((d) => d.serviceName === name)?.contract;
+			const supervisorRequirement = {
+				type: 'sw.supervisor',
+				version: '>=19.3.0',
+			};
+			expect(contractOf('annotated')).to.deep.equal({
+				type: 'sw.container',
+				slug: 'contract-for-annotated',
+				requires: [supervisorRequirement],
+			});
+			expect(contractOf('runtime')).to.deep.equal({
+				type: 'sw.container',
+				slug: 'contract-for-runtime',
+				requires: [supervisorRequirement],
+			});
+			expect(contractOf('labelled')).to.deep.equal({
+				type: 'sw.container',
+				slug: 'contract-for-labelled',
+				requires: [
+					{ type: 'sw.supervisor', version: '>=20.0.0' },
+					supervisorRequirement,
+				],
+			});
+			expect(contractOf('plain')).to.be.undefined;
+		});
+
+		it('should leave io.balena.features.optional to the user', async () => {
+			// An older Supervisor rejects the release rather than skipping the
+			// service, since we cannot tell which services the app can do without
+			const { services } = await parse(
+				'test/fixtures/compose/services/supervisor_gated.yml',
+			);
+			const optional = (name: string) =>
+				services[name].labels?.['io.balena.features.optional'];
+			expect(optional('annotated')).to.be.undefined;
+			expect(optional('runtime')).to.be.undefined;
+			expect(optional('required')).to.equal('false');
 		});
 
 		it('should not add a contract if only already-supported compose fields are present', async () => {
@@ -2127,7 +2173,7 @@ describe('compose-go parsing & validation', () => {
 							CONFIG_KEY: 'value1',
 							EXAMPLE_KEY: 'value2',
 						},
-						labels: {
+						annotations: {
 							'io.balena.test': 'true',
 						},
 					},
@@ -2138,7 +2184,7 @@ describe('compose-go parsing & validation', () => {
 							CONFIG_KEY: 'value1',
 							EXAMPLE_KEY: 'value2',
 						},
-						labels: {
+						annotations: {
 							'io.balena.test': 'true',
 						},
 					},

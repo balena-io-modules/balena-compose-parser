@@ -14,7 +14,11 @@ import {
 	ServiceError,
 } from './errors';
 import { validateContractLabels, createContractFromLabels } from './contracts';
-import { usesNewComposeFields } from './legacy';
+import {
+	usesNewComposeFields,
+	usesSupervisorGatedFields,
+	SUPERVISOR_GATED_MIN_VERSION,
+} from './legacy';
 import type {
 	Composition,
 	Dict,
@@ -25,6 +29,8 @@ import type {
 	DevicesConfig,
 	ServiceVolumeConfig,
 	ImageDescriptor,
+	ContractObject,
+	ContractWithChildren,
 } from './types';
 
 const execFileAsync = promisify(execFile);
@@ -329,7 +335,6 @@ export const SERVICE_CONFIG_DENY_LIST = [
 	'pre_stop',
 	'provider',
 	'pull_policy',
-	'runtime',
 	'scale',
 	'secrets',
 	'stdin_open',
@@ -982,11 +987,27 @@ export function toImageDescriptors(c: Composition): ImageDescriptor[] {
 	});
 }
 
+function addRequirement(
+	contract: ContractWithChildren | null,
+	serviceName: string,
+	requirement: ContractObject,
+): ContractWithChildren {
+	if (contract && 'requires' in contract) {
+		(contract.requires as ContractWithChildren[]).push(requirement);
+		return contract;
+	}
+	return {
+		type: 'sw.container',
+		slug: `contract-for-${serviceName}`,
+		requires: [requirement],
+	};
+}
+
 function createImageDescriptor(
 	serviceName: string,
 	service: Service,
 ): ImageDescriptor {
-	const contract = createContractFromLabels(serviceName, service.labels);
+	let contract = createContractFromLabels(serviceName, service.labels);
 
 	// TODO: Re-enable once a Supervisor supporting the new compose fields is in
 	// production, and drop the rejection in normalizeService.
@@ -997,21 +1018,19 @@ function createImageDescriptor(
 	// 	console.warn(
 	// 		`Service "${serviceName}" uses compose fields that may not be supported on legacy Supervisor versions`,
 	// 	);
-	// 	const composeRequirement = {
+	// 	contract = addRequirement(contract, serviceName, {
 	// 		type: 'sw.spec',
 	// 		slug: 'compose',
 	// 		version: '>=2',
-	// 	};
-	// 	if (contract && 'requires' in contract) {
-	// 		(contract.requires as any[]).push(composeRequirement);
-	// 	} else {
-	// 		contract = {
-	// 			type: 'sw.container',
-	// 			slug: `contract-for-${serviceName}`,
-	// 			requires: [composeRequirement],
-	// 		};
-	// 	}
+	// 	});
 	// }
+
+	if (usesSupervisorGatedFields(service)) {
+		contract = addRequirement(contract, serviceName, {
+			type: 'sw.supervisor',
+			version: SUPERVISOR_GATED_MIN_VERSION,
+		});
+	}
 
 	if (service.image && !service.build) {
 		return {
