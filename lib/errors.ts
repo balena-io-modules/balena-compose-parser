@@ -39,3 +39,24 @@ export class ArgumentError extends ComposeError {
 		super(message, ErrorLevel.ERROR, 'ArgumentError');
 	}
 }
+
+/** compose-go could not read or parse a compose file, or marshal the result. */
+export class ParseError extends ComposeError {
+	constructor(public message: string) {
+		super(message, ErrorLevel.ERROR, 'ParseError');
+	}
+}
+
+/** The binary gave up on the parse, which is its own limit and not the file's fault. */
+export class TimeoutError extends ComposeError {
+	constructor(public message: string) {
+		super(message, ErrorLevel.ERROR, 'TimeoutError');
+	}
+}
+
+/** compose-go rejected the project options before it looked at the file. */
+export class ConfigError extends ComposeError {
+	constructor(public message: string) {
+		super(message, ErrorLevel.ERROR, 'ConfigError');
+	}
+}

@@ -7,6 +7,9 @@ import {
 	ServiceError,
 	ValidationError,
 	ArgumentError,
+	ParseError,
+	TimeoutError,
+	ConfigError,
 	ComposeError,
 } from './errors';
 import {
@@ -37,5 +40,8 @@ export {
 	ServiceError,
 	ValidationError,
 	ArgumentError,
+	ParseError,
+	TimeoutError,
+	ConfigError,
 };
 export type { ContractParser, ParseOptions };

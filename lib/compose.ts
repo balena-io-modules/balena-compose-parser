@@ -8,6 +8,9 @@ import {
 	ComposeError,
 	ValidationError,
 	ArgumentError,
+	ParseError,
+	TimeoutError,
+	ConfigError,
 	ServiceError,
 } from './errors';
 import { validateContractLabels, createContractFromLabels } from './contracts';
@@ -125,6 +128,12 @@ function toError(message: string, level: string, name?: string): ComposeError {
 			return new ValidationError(message);
 		case 'ArgumentError':
 			return new ArgumentError(message);
+		case 'ParseError':
+			return new ParseError(message);
+		case 'TimeoutError':
+			return new TimeoutError(message);
+		case 'ConfigError':
+			return new ConfigError(message);
 		default:
 			return new ComposeError(message, level as ErrorLevel, name);
 	}
