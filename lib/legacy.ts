@@ -8,7 +8,6 @@ import type { Service } from './types';
 // TODO: When long syntax depends_on and long syntax volumes are supported
 // (i.e. their rejections in normalizeService are removed), add them here.
 export const NEW_COMPOSE_SERVICE_FIELDS = [
-	'annotations',
 	'cgroup',
 	'cpu_rt_runtime',
 	'cpu_rt_period',
@@ -16,6 +15,30 @@ export const NEW_COMPOSE_SERVICE_FIELDS = [
 	'device_cgroup_rules',
 	'uts',
 ];
+
+// Fields accepted behind a minimum Supervisor version instead of being rejected
+export const SUPERVISOR_GATED_SERVICE_FIELDS = ['annotations', 'runtime'];
+export const SUPERVISOR_GATED_MIN_VERSION = '>=19.3.0';
+
+export function usesSupervisorGatedFields(service: Service): boolean {
+	return SUPERVISOR_GATED_SERVICE_FIELDS.some((field) =>
+		isPopulated(service[field as keyof Service]),
+	);
+}
+
+// An empty annotations list or map asks nothing of the Supervisor
+function isPopulated(value: unknown): boolean {
+	if (value == null) {
+		return false;
+	}
+	if (Array.isArray(value)) {
+		return value.length > 0;
+	}
+	if (typeof value === 'object') {
+		return Object.keys(value).length > 0;
+	}
+	return true;
+}
 
 // Sub-fields of service.healthcheck that are newly supported
 const NEW_COMPOSE_HEALTHCHECK_FIELDS = ['start_interval'];

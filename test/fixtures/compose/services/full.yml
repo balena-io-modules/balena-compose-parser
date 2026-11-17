@@ -2,8 +2,8 @@ services:
   main:
     image: alpine:latest
     command: sh -c "sleep infinity"
-    # annotations: # Newly supported, rejected until Supervisor support lands
-      # - com.example.annotation=value
+    annotations:
+      - com.example.annotation=value
     # cgroup: 'host' # Newly supported, rejected until Supervisor support lands
     # cpu_rt_runtime: 100000 # Newly supported, rejected until Supervisor support lands
     # cpu_rt_period: 100000 # Newly supported, rejected until Supervisor support lands
@@ -56,6 +56,7 @@ services:
     pids_limit: 50
     privileged: true
     read_only: true
+    runtime: runc
     security_opt:
       - no-new-privileges
     shm_size: 1024m
@@ -79,8 +80,8 @@ services:
   one:
     image: alpine:latest
     command: sh -c "sleep infinity"
-    # annotations: # Newly supported, rejected until Supervisor support lands
-      # com.example.annotation2: value2
+    annotations:
+      com.example.annotation2: value2
     dns: 
       - 8.8.8.8
       - 8.8.4.4
