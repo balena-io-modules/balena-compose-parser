@@ -26,6 +26,11 @@ import type {
 
 const execFileAsync = promisify(execFile);
 
+// execFile kills the binary once its output passes this, and the default of
+// 1MB is less than compose-go writes for a large project, which surfaced as a
+// JSON syntax error at byte 1048576 rather than anything about size.
+const MAX_OUTPUT_BYTES = 64 * 1024 * 1024;
+
 export interface ParseOptions {
 	/**
 	 * Treat the compose file as trusted, letting it read our environment and the
@@ -86,6 +91,7 @@ export async function parse(
 	const result = await execFileAsync(binaryPath, args, {
 		// Withhold it here too.
 		env: hostEnvironment ? process.env : {},
+		maxBuffer: MAX_OUTPUT_BYTES,
 	}).catch((e) => {
 		// If exec error has stdout/stderr, handle them later; otherwise throw immediately
 		if (e.stdout !== undefined && e.stderr !== undefined) {

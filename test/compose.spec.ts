@@ -11,9 +11,26 @@ import {
 	NAMESPACED_LABEL_ERROR_MESSAGE,
 } from '../lib/compose';
 import { ComposeError, ServiceError, ValidationError } from '../lib/errors';
+import { withComposeFile } from './helpers';
 
 describe('compose-go parsing & validation', () => {
 	describe('basic parsing', () => {
+		it('should parse a project whose output is larger than 1MB', async function () {
+			this.timeout(60000);
+			// execFile's default maxBuffer truncated the output at 1MB
+			const services = Array.from(
+				{ length: 1500 },
+				(_, i) =>
+					`  s${i}:\n    image: busybox\n    environment:\n      PAD: "${'x'.repeat(1000)}"\n`,
+			).join('');
+			const composition = await withComposeFile(
+				`services:\n${services}`,
+				(file) => parse(file),
+			);
+
+			expect(Object.keys(composition.services)).to.have.length(1500);
+		});
+
 		let warnStub: SinonStub;
 
 		beforeEach(() => {
