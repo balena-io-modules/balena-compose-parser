@@ -7,6 +7,7 @@ import type { ErrorLevel } from './errors';
 import {
 	ComposeError,
 	ValidationError,
+	SecondaryFileError,
 	ArgumentError,
 	ParseError,
 	TimeoutError,
@@ -122,10 +123,21 @@ export async function parse(
 
 // The binary names the error it hit. Build the matching class, so a consumer can
 // check with instanceof and not just by name.
-function toError(message: string, level: string, name?: string): ComposeError {
+function toError(
+	message: string,
+	level: string,
+	name?: string,
+	field?: string,
+): ComposeError {
 	switch (name) {
 		case 'ValidationError':
 			return new ValidationError(message);
+		case 'SecondaryFileError':
+			// The binary always names the field for this one. Without it there is
+			// nothing to point at, so fall back to what it was reported as before.
+			return field != null
+				? new SecondaryFileError(message, field)
+				: new ValidationError(message);
 		case 'ArgumentError':
 			return new ArgumentError(message);
 		case 'ParseError':
@@ -154,7 +166,12 @@ function toComposeError(stderr: string): ComposeError[] {
 			// Both our custom error format and logrus JSON format have 'message' field
 			if (parsed.message) {
 				errors.push(
-					toError(parsed.message, parsed.level ?? 'error', parsed.name),
+					toError(
+						parsed.message,
+						parsed.level ?? 'error',
+						parsed.name,
+						parsed.field,
+					),
 				);
 			}
 		} catch {

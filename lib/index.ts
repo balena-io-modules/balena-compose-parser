@@ -6,6 +6,7 @@ import type { ContractParser } from './contracts';
 import {
 	ServiceError,
 	ValidationError,
+	SecondaryFileError,
 	ArgumentError,
 	ParseError,
 	TimeoutError,
@@ -39,6 +40,7 @@ export {
 	ComposeError,
 	ServiceError,
 	ValidationError,
+	SecondaryFileError,
 	ArgumentError,
 	ParseError,
 	TimeoutError,

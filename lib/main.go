@@ -22,6 +22,8 @@ type ErrorResponse struct {
 	Error   bool   `json:"error"`
 	Name    string `json:"name"`
 	Message string `json:"message"`
+	// The compose field at fault, when the error is about one
+	Field string `json:"field,omitempty"`
 }
 
 // Usage message
@@ -154,8 +156,9 @@ func main() {
 	var project *types.Project
 	select {
 	case result := <-resultChan:
-		if errors.Is(result.err, errSecondaryFile) {
-			outputError("ValidationError", result.err.Error())
+		var secondary *secondaryFileError
+		if errors.As(result.err, &secondary) {
+			outputFieldError("SecondaryFileError", secondary.Error(), secondary.field)
 			os.Exit(1)
 		}
 		if result.err != nil {
@@ -179,7 +182,16 @@ func main() {
 	os.Stdout.Write(projectJSON)
 }
 
-var errSecondaryFile = errors.New("secondary file references are not allowed in an untrusted compose file")
+// secondaryFileError names the compose field that references a file the
+// parser was not allowed to read, as a dotted path such as
+// services.app.env_file, so a consumer can point the user at it.
+type secondaryFileError struct {
+	field string
+}
+
+func (e *secondaryFileError) Error() string {
+	return "secondary file references are not allowed in an untrusted compose file: " + e.field
+}
 
 // loadUntrusted reads the compose files once, refuses any that name a file
 // compose-go would go on to read, and builds the project from what it already
@@ -242,7 +254,7 @@ func loadUntrusted(
 // passing several and relying on this should check each file itself.
 func rejectSecondaryFiles(model map[string]any) error {
 	if namesPath(model["include"]) {
-		return fmt.Errorf("%w: include", errSecondaryFile)
+		return &secondaryFileError{field: "include"}
 	}
 
 	services, _ := model["services"].(map[string]any)
@@ -250,12 +262,12 @@ func rejectSecondaryFiles(model map[string]any) error {
 		service, _ := services[name].(map[string]any)
 		for _, key := range []string{"env_file", "label_file"} {
 			if namesPath(service[key]) {
-				return fmt.Errorf("%w: services.%s.%s", errSecondaryFile, name, key)
+				return &secondaryFileError{field: fmt.Sprintf("services.%s.%s", name, key)}
 			}
 		}
 		extends, _ := service["extends"].(map[string]any)
 		if namesPath(extends["file"]) {
-			return fmt.Errorf("%w: services.%s.extends.file", errSecondaryFile, name)
+			return &secondaryFileError{field: fmt.Sprintf("services.%s.extends.file", name)}
 		}
 	}
 
@@ -280,10 +292,16 @@ func namesPath(value any) bool {
 
 // Write a structured error response to stderr
 func outputError(errorName, message string) {
+	outputFieldError(errorName, message, "")
+}
+
+// Like outputError, naming the compose field at fault
+func outputFieldError(errorName, message, field string) {
 	response := ErrorResponse{
 		Error:   true,
 		Name:    errorName,
 		Message: message,
+		Field:   field,
 	}
 
 	// Output to stderr for error handling in TypeScript

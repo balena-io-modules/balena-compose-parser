@@ -25,6 +25,21 @@ export class ValidationError extends ComposeError {
 	}
 }
 
+/**
+ * The compose file names a file the parser was not allowed to read. `field` is
+ * the dotted path at fault, such as `services.app.env_file` or `include`.
+ * Extends ValidationError, which is how it was reported before it had a class.
+ */
+export class SecondaryFileError extends ValidationError {
+	constructor(
+		public message: string,
+		public field: string,
+	) {
+		super(message);
+		this.name = 'SecondaryFileError';
+	}
+}
+
 export class ServiceError extends ComposeError {
 	constructor(
 		public message: string,
