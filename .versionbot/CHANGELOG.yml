@@ -1,4 +1,21 @@
 - commits:
+    - subject: Export a class for every error name the binary emits
+      hash: 7674bb8bb176a8a9b7d96f1754e8fe28ae798d37
+      body: >
+        - ParseError, TimeoutError and ConfigError arrived as a bare
+        ComposeError
+          with only name set, so a consumer could not use instanceof to tell a
+          broken file from the parser's own timeout
+        - Each name now has its own class, matching ValidationError and
+          ArgumentError
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Christina Ying Wang
+  version: 1.2.0
+  title: ""
+  date: 2026-11-18T00:53:30.957Z
+- commits:
     - subject: Note why js-yaml is pinned on v4
       hash: 75e2efb6d99eaa72cf1afaf19f39b6cb2f2e2cc0
       body: |
