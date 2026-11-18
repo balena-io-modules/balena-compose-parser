@@ -120,7 +120,9 @@ That keeps a compose file written around defaults working.
 
 `hostEnvironment` also allows secondary files, and puts no limit on where they
 point. An untrusted file can name any path this process can read, including
-`/proc/<pid>/environ`, so leaving it off is what keeps a parse hermetic.
+`/proc/<pid>/environ`, so leaving it off is what keeps a parse self-contained. With
+it off, a file that names one is rejected with a `SecondaryFileError` whose
+`field` is the dotted path at fault, such as `services.app.env_file`.
 
 Both defaults were effectively on before v1.0.0, so a caller relying on either
 has to say so now.

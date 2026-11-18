@@ -2,7 +2,11 @@ import { expect } from 'chai';
 import * as path from 'path';
 
 import { parse } from '../lib/compose';
-import { ComposeError, ValidationError } from '../lib/errors';
+import {
+	ComposeError,
+	SecondaryFileError,
+	ValidationError,
+} from '../lib/errors';
 
 const DIR = 'test/fixtures/secondary-files';
 
@@ -24,7 +28,9 @@ describe('secondary files', () => {
 				() => {
 					throw new Error(`Expected ${field} to be rejected`);
 				},
-				(err: ComposeError) => {
+				(err: SecondaryFileError) => {
+					expect(err).to.be.instanceOf(SecondaryFileError);
+					expect(err.field).to.equal(field);
 					expect(err.message).to.contain(
 						'secondary file references are not allowed',
 					);
@@ -37,6 +43,9 @@ describe('secondary files', () => {
 	it('throws an error a consumer can match on', async () => {
 		const err = await parse(`${DIR}/traversal.yml`).catch((e) => e);
 
+		expect(err).to.be.instanceOf(SecondaryFileError);
+		expect(err.name).to.equal('SecondaryFileError');
+		// Still a ValidationError, for consumers matching on what it used to be
 		expect(err).to.be.instanceOf(ValidationError);
 	});
 
