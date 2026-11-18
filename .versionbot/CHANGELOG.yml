@@ -1,4 +1,20 @@
 - commits:
+    - subject: Name the field at fault in a secondary file rejection
+      hash: e173a402a19398ddf489c7274b40ce4a0ebcb8ee
+      body: >
+        - The binary now reports a SecondaryFileError carrying the dotted path
+        of
+          the field, such as services.app.env_file, instead of a ValidationError a
+          consumer had to parse the message of
+        - The class extends ValidationError, so existing instanceof checks hold
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Christina Ying Wang
+  version: 1.3.0
+  title: ""
+  date: 2026-11-18T23:27:52.906Z
+- commits:
     - subject: Export a class for every error name the binary emits
       hash: 7674bb8bb176a8a9b7d96f1754e8fe28ae798d37
       body: >
