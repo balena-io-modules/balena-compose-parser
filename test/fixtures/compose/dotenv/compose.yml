@@ -1,0 +1,5 @@
+services:
+  main:
+    image: busybox
+    environment:
+      FROM_DOTENV: ${FROM_DOTENV}

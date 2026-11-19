@@ -11,6 +11,7 @@ import {
 	NAMESPACED_LABEL_ERROR_MESSAGE,
 } from '../lib/compose';
 import { ComposeError, ServiceError, ValidationError } from '../lib/errors';
+import { withEnv } from './helpers';
 
 describe('compose-go parsing & validation', () => {
 	describe('basic parsing', () => {
@@ -2265,7 +2266,7 @@ describe('compose-go parsing & validation', () => {
 							DATABASE: 'myapp_db',
 							PORT: '8080',
 							DEFAULT_VAR: 'default_value',
-							VALUE_FROM_DOTENV: '', // 'value_from_dotenv', // TODO: vars from .env in working directory are not being picked up
+							VALUE_FROM_DOTENV: 'value_from_dotenv',
 						},
 						ports: ['8080:8080'],
 					},
@@ -2277,6 +2278,42 @@ describe('compose-go parsing & validation', () => {
 			delete process.env.APP_PORT;
 			delete process.env.APP_ENV;
 			delete process.env.DB_NAME;
+		});
+
+		it('should let the shell environment win over the .env file', async () => {
+			await withEnv(
+				{
+					IMAGE_TAG: '3.18',
+					APP_PORT: '8080',
+					APP_ENV: 'production',
+					DB_NAME: 'myapp_db',
+					VALUE_FROM_DOTENV: 'from_shell',
+				},
+				async () => {
+					const composition = await parse(
+						'test/fixtures/compose/interpolation/compose.yml',
+						{ hostEnvironment: true },
+					);
+					expect(composition.services.main.environment).to.include({
+						VALUE_FROM_DOTENV: 'from_shell',
+					});
+				},
+			);
+		});
+
+		it('should not read the .env file without hostEnvironment', async () => {
+			// The builder relies on this: a .env next to the compose file is a
+			// secondary file like any other on the untrusted path
+			const fixture = 'test/fixtures/compose/dotenv/compose.yml';
+			const trusted = await parse(fixture, { hostEnvironment: true });
+			expect(trusted.services.main.environment).to.deep.equal({
+				FROM_DOTENV: 'from_dotenv',
+			});
+
+			const untrusted = await parse(fixture);
+			expect(untrusted.services.main.environment).to.deep.equal({
+				FROM_DOTENV: '',
+			});
 		});
 	});
 
