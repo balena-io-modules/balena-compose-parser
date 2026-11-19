@@ -1,4 +1,19 @@
 - commits:
+    - subject: Test that ValidationError and ArgumentError are thrown
+      hash: cb003466596bbe6dfe2c766c4dbc25496fa3cd08
+      body: |
+        - Nothing checked either class reached a caller, only ParseError and the
+          secondary file case
+        - A top-level secrets key covers ValidationError and an empty file list
+          covers ArgumentError
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Christina Ying Wang
+  version: 1.3.1
+  title: ""
+  date: 2026-11-19T07:05:14.717Z
+- commits:
     - subject: Name the field at fault in a secondary file rejection
       hash: e173a402a19398ddf489c7274b40ce4a0ebcb8ee
       body: >
