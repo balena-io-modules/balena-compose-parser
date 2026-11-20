@@ -113,10 +113,12 @@ func main() {
 	// Off by default, since a compose file can name any variable we hold and have
 	// the value copied out. --skip-interpolation does not stop that, because a
 	// valueless `environment: [FOO]` entry is resolved by name, not substitution.
-	// WithDotEnv belongs here too, since a .env in the project is a file the
-	// compose file brought with it.
+	// The project's .env belongs here too, since it is a file the compose file
+	// brought with it. WithEnvFiles finds it next to the compose file and
+	// WithDotEnv reads what WithEnvFiles found, so both are needed. The shell
+	// environment is merged first and wins, as with docker compose.
 	if hostEnv {
-		projectOptions = append(projectOptions, cli.WithOsEnv, cli.WithDotEnv)
+		projectOptions = append(projectOptions, cli.WithOsEnv, cli.WithEnvFiles(), cli.WithDotEnv)
 	}
 
 	projectOptions = append(projectOptions,
