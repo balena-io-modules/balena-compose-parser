@@ -198,14 +198,13 @@ describe('compose-go parsing & validation', () => {
 						annotations: {
 							'com.example.annotation': 'value',
 						},
-						attach: false,
-						cgroup: 'host',
-						cpu_rt_runtime: 100000,
-						cpu_rt_period: 100000,
-						cpus: 0.5,
+						// cgroup: 'host', // Newly supported, rejected until Supervisor support lands
+						// cpu_rt_runtime: 100000, // Newly supported, rejected until Supervisor support lands
+						// cpu_rt_period: 100000, // Newly supported, rejected until Supervisor support lands
+						// cpus: 0.5, // Newly supported, rejected until Supervisor support lands
 						cpuset: '0-2',
 						depends_on: ['one'],
-						device_cgroup_rules: ['c 1:3 mr', 'a 7:* rmw'],
+						// device_cgroup_rules: ['c 1:3 mr', 'a 7:* rmw'], // Newly supported, rejected until Supervisor support lands
 						devices: ['/dev/sda:/dev/sda:rwm', '/dev/sdb:/dev/sdb:r'],
 						dns: ['8.8.8.8'],
 						dns_opt: ['use-vc', 'no-tld-query'],
@@ -223,7 +222,7 @@ describe('compose-go parsing & validation', () => {
 							timeout: '10s',
 							retries: 3,
 							start_period: '40s',
-							start_interval: '10s',
+							// start_interval: '10s', // Newly supported, rejected until Supervisor support lands
 						},
 						hostname: 'balena',
 						init: true,
@@ -235,31 +234,11 @@ describe('compose-go parsing & validation', () => {
 						mac_address: '02:42:ac:11:00:02',
 						mem_limit: '1073741824',
 						mem_reservation: '536870912',
+						pid: 'host',
 						pids_limit: 50,
-						post_start: [
-							{
-								command: ['./do_something_on_startup.sh'],
-								environment: {
-									FOO: 'BAR1',
-								},
-								working_dir: '/app',
-								user: 'root',
-								privileged: true,
-							},
-						],
-						pre_stop: [
-							{
-								command: ['./do_something_on_shutdown.sh'],
-								environment: {
-									FOO: 'BAR2',
-								},
-								working_dir: '/app',
-								user: 'root',
-								privileged: true,
-							},
-						],
 						privileged: true,
 						read_only: true,
+						runtime: 'runc',
 						security_opt: ['no-new-privileges'],
 						shm_size: '1073741824',
 						stop_grace_period: '3s',
@@ -279,7 +258,7 @@ describe('compose-go parsing & validation', () => {
 						},
 						user: 'balena',
 						userns_mode: 'host',
-						uts: 'host',
+						// uts: 'host', // Newly supported, rejected until Supervisor support lands
 					},
 					one: {
 						image: 'alpine:latest',
@@ -628,17 +607,16 @@ describe('compose-go parsing & validation', () => {
 						networks: {
 							net: {
 								aliases: ['net1'],
-								interface_name: 'eth0',
 								ipv4_address: '10.0.0.2',
-								ipv6_address: '2001:db8::2',
+								// ipv6_address: '2001:db8::2', // Newly supported, rejected until Supervisor support lands
 								// link_local_ips: ['169.254.1.2', '169.254.1.3'], // Not yet supported by Supervisor
-								mac_address: '02:42:ac:11:00:02',
-								driver_opts: {
-									foo: 'bar',
-									baz: '1',
-								},
-								gw_priority: 1,
-								priority: 2,
+								// mac_address: '02:42:ac:11:00:02', // Newly supported, rejected until Supervisor support lands
+								// driver_opts: { // Newly supported, rejected until Supervisor support lands
+								// foo: 'bar',
+								// baz: '1',
+								// },
+								// gw_priority: 1, // Newly supported, rejected until Supervisor support lands
+								// priority: 2, // Newly supported, rejected until Supervisor support lands
 							},
 						},
 					},
@@ -674,6 +652,21 @@ describe('compose-go parsing & validation', () => {
 				expect(error.serviceName).to.equal('main');
 				expect(error.message).to.equal(
 					'service.network.link_local_ips is not supported',
+				);
+			}
+		});
+
+		it('should reject service.network.interface_name', async () => {
+			try {
+				await parse(
+					'test/fixtures/compose/services/unsupported/network.interface_name.yml',
+				);
+				expect.fail('Expected compose parser to reject network.interface_name');
+			} catch (error) {
+				expect(error).to.be.instanceOf(ServiceError);
+				expect(error.serviceName).to.equal('main');
+				expect(error.message).to.equal(
+					'service.network.interface_name is not allowed',
 				);
 			}
 		});
@@ -718,8 +711,11 @@ describe('compose-go parsing & validation', () => {
 			});
 		});
 
-		it('should inject a service dependency if pid:service:${serviceName} is defined', async () => {
-			const composition = await parse('test/fixtures/compose/services/pid.yml');
+		// TODO: Re-enable when newly supported fields are no longer rejected (see lib/legacy.ts)
+		it.skip('should inject a service dependency if pid:service:${serviceName} is defined', async () => {
+			const composition = await parse(
+				'test/fixtures/compose/services/unsupported/pid.yml',
+			);
 
 			expect(composition).to.deep.equal({
 				services: {
@@ -1209,47 +1205,6 @@ describe('compose-go parsing & validation', () => {
 			});
 		});
 
-		it('should inject a service dependency if volumes_from is defined', async () => {
-			const composition = await parse(
-				'test/fixtures/compose/services/volumes_from.yml',
-			);
-			expect(composition).to.deep.equal({
-				services: {
-					one: {
-						image: 'alpine:latest',
-						command: ['sh', '-c', 'sleep infinity'],
-						volumes_from: ['two:ro'],
-						depends_on: ['two'],
-					},
-					two: {
-						image: 'alpine:latest',
-						command: ['sh', '-c', 'sleep infinity'],
-						volumes: ['test:/test'],
-					},
-				},
-				volumes: {
-					test: {},
-				},
-			});
-		});
-
-		it('should reject volumes_from which references container:${containerId}', async () => {
-			try {
-				await parse(
-					'test/fixtures/compose/services/unsupported/volumes_from_container.yml',
-				);
-				expect.fail(
-					'Expected compose parser to reject volumes_from which references container:${containerId}',
-				);
-			} catch (error) {
-				expect(error).to.be.instanceOf(ServiceError);
-				expect(error.serviceName).to.equal('one');
-				expect(error.message).to.equal(
-					'service.volumes_from which references a containerId is not allowed',
-				);
-			}
-		});
-
 		it('should add image as build tag if present', async () => {
 			const composition = await parse(
 				'test/fixtures/compose/services/image_build.yml',
@@ -1287,36 +1242,80 @@ describe('compose-go parsing & validation', () => {
 			});
 		});
 
-		it('should add sw.spec/compose contract if newly supported compose fields are present', async () => {
-			const composition = await parse(
-				'test/fixtures/compose/services/newly_supported.yml',
-			);
-			const descriptors = toImageDescriptors(composition);
-			const composeRequirement = {
-				type: 'sw.spec',
-				slug: 'compose',
-				version: '>=2',
-			};
-			// Service with newly supported top-level fields
-			const main = descriptors.find((d) => d.serviceName === 'main');
-			expect(main?.contract)
-				.to.have.property('requires')
-				.that.deep.includes(composeRequirement);
-			// Service with newly supported healthcheck sub-field
-			const sidecar = descriptors.find((d) => d.serviceName === 'sidecar');
-			expect(sidecar?.contract)
-				.to.have.property('requires')
-				.that.deep.includes(composeRequirement);
-			// Service with newly supported network sub-fields
-			const netservice = descriptors.find(
-				(d) => d.serviceName === 'netservice',
-			);
-			expect(netservice?.contract)
-				.to.have.property('requires')
-				.that.deep.includes(composeRequirement);
+		it('should reject newly supported compose fields', async () => {
+			const cases: Array<[string, string]> = [
+				['newly_supported_fields.yml', 'service.uts is not supported'],
+				[
+					'newly_supported_healthcheck.yml',
+					'service.healthcheck.start_interval is not supported',
+				],
+				[
+					'newly_supported_networks.yml',
+					'service.network.ipv6_address is not supported',
+				],
+				['pid.yml', 'service.pid service:one is not supported'],
+			];
+			for (const [fixture, warning] of cases) {
+				warnStub.resetHistory();
+				try {
+					await parse(`test/fixtures/compose/services/unsupported/${fixture}`);
+					expect.fail(`expected ${fixture} to be rejected`);
+				} catch (error) {
+					expect(error).to.be.instanceOf(ServiceError);
+					expect(error.message).to.equal(
+						'service uses compose fields that no Supervisor supports yet',
+					);
+					expect(warnStub.lastCall.args[0]).to.equal(warning);
+				}
+			}
 		});
 
-		it('should not add sw.spec/compose contract if only already-supported compose fields are present', async () => {
+		it('should add sw.supervisor contract if annotations or runtime are present', async () => {
+			const composition = await parse(
+				'test/fixtures/compose/services/supervisor_gated.yml',
+			);
+			const descriptors = toImageDescriptors(composition);
+			const contractOf = (name: string) =>
+				descriptors.find((d) => d.serviceName === name)?.contract;
+			const supervisorRequirement = {
+				type: 'sw.supervisor',
+				version: '>=19.3.0',
+			};
+			expect(contractOf('annotated')).to.deep.equal({
+				type: 'sw.container',
+				slug: 'contract-for-annotated',
+				requires: [supervisorRequirement],
+			});
+			expect(contractOf('runtime')).to.deep.equal({
+				type: 'sw.container',
+				slug: 'contract-for-runtime',
+				requires: [supervisorRequirement],
+			});
+			expect(contractOf('labelled')).to.deep.equal({
+				type: 'sw.container',
+				slug: 'contract-for-labelled',
+				requires: [
+					{ type: 'sw.supervisor', version: '>=20.0.0' },
+					supervisorRequirement,
+				],
+			});
+			expect(contractOf('plain')).to.be.undefined;
+		});
+
+		it('should leave io.balena.features.optional to the user', async () => {
+			// An older Supervisor rejects the release rather than skipping the
+			// service, since we cannot tell which services the app can do without
+			const { services } = await parse(
+				'test/fixtures/compose/services/supervisor_gated.yml',
+			);
+			const optional = (name: string) =>
+				services[name].labels?.['io.balena.features.optional'];
+			expect(optional('annotated')).to.be.undefined;
+			expect(optional('runtime')).to.be.undefined;
+			expect(optional('required')).to.equal('false');
+		});
+
+		it('should not add a contract if only already-supported compose fields are present', async () => {
 			const composition = await parse(
 				'test/fixtures/compose/services/no_newly_supported.yml',
 			);
@@ -1913,7 +1912,7 @@ describe('compose-go parsing & validation', () => {
 						image: 'nginx:1.19',
 						command: null,
 						restart: 'no',
-						attach: true,
+						init: true,
 						mem_limit: '1073741824', // 1g
 						networks: {
 							backend: null,

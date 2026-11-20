@@ -2,4 +2,5 @@ services:
   main:
     image: alpine:latest
     command: sh -c "sleep infinity"
-    runtime: runc
+    pre_stop:
+      - command: echo bye
