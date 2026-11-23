@@ -1,4 +1,37 @@
 - commits:
+    - subject: Allow runtime and annotations behind a Supervisor 19.3.0 requirement
+      hash: 6c31eddf40fc6cf7840034fa02bfb3e3ee51a8ac
+      body: >
+        - A service that sets either field gets a sw.supervisor >=19.3.0
+        contract
+          requirement, so an older Supervisor rejects the release rather than
+          running it without the field
+        - Nothing is marked optional on the user's behalf, since the parser
+          cannot tell which services an app can do without
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Christina Ying Wang
+    - subject: Reject newly supported compose fields instead of adding a contract
+      hash: 82a65c19725b3a851c9cbd92959c80c0b817d236
+      body: >
+        No production Supervisor can run the new compose fields yet, so a
+        release
+
+        carrying them with a sw.spec/compose contract would still reach devices
+
+        that can't use them. Reject at parse time for now.
+
+
+        Contract injection is commented out until Supervisor support ships.
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Christina Ying Wang
+  version: 1.4.0
+  title: ""
+  date: 2026-11-23T20:44:23.057Z
+- commits:
     - subject: Read the project's .env on the trusted path
       hash: feb537855b1f6d210067137ab575eb8dc0f8b0cd
       body: >
