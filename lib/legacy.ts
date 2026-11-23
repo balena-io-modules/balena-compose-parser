@@ -1,24 +1,44 @@
 import type { Service } from './types';
 
 // Fields newly supported by balena-compose-parser that were
-// not supported by balena-compose previously. If a service uses any of these fields,
-// we add a sw.spec/compose contract requirement so that legacy Supervisors which don't support
-// the new compose fields can gracefully reject the composition.
+// not supported by balena-compose previously. Services using any of these are
+// rejected at parse time until a Supervisor that supports them is in production.
+// Once it is, the rejection is to be replaced by a sw.spec/compose contract
+// requirement so legacy Supervisors can reject the composition.
 // TODO: When long syntax depends_on and long syntax volumes are supported
 // (i.e. their rejections in normalizeService are removed), add them here.
 export const NEW_COMPOSE_SERVICE_FIELDS = [
-	'annotations',
-	'attach',
 	'cgroup',
 	'cpu_rt_runtime',
 	'cpu_rt_period',
 	'cpus',
 	'device_cgroup_rules',
-	'post_start',
-	'pre_stop',
 	'uts',
-	'volumes_from',
 ];
+
+// Fields accepted behind a minimum Supervisor version instead of being rejected
+export const SUPERVISOR_GATED_SERVICE_FIELDS = ['annotations', 'runtime'];
+export const SUPERVISOR_GATED_MIN_VERSION = '>=19.3.0';
+
+export function usesSupervisorGatedFields(service: Service): boolean {
+	return SUPERVISOR_GATED_SERVICE_FIELDS.some((field) =>
+		isPopulated(service[field as keyof Service]),
+	);
+}
+
+// An empty annotations list or map asks nothing of the Supervisor
+function isPopulated(value: unknown): boolean {
+	if (value == null) {
+		return false;
+	}
+	if (Array.isArray(value)) {
+		return value.length > 0;
+	}
+	if (typeof value === 'object') {
+		return Object.keys(value).length > 0;
+	}
+	return true;
+}
 
 // Sub-fields of service.healthcheck that are newly supported
 const NEW_COMPOSE_HEALTHCHECK_FIELDS = ['start_interval'];
@@ -32,16 +52,19 @@ const NEW_COMPOSE_NETWORK_FIELDS = [
 	'priority',
 ];
 
+// Warns and returns true if the service uses any newly supported field
 export function usesNewComposeFields(service: Service): boolean {
 	// Check top-level service fields
 	for (const field of NEW_COMPOSE_SERVICE_FIELDS) {
 		if (service[field as keyof Service] != null) {
+			console.warn(`service.${field} is not supported`);
 			return true;
 		}
 	}
 
 	// pid=service:${serviceName} is newly supported; pid=host was already supported
 	if (service.pid?.startsWith('service:')) {
+		console.warn(`service.pid ${service.pid} is not supported`);
 		return true;
 	}
 
@@ -53,6 +76,7 @@ export function usesNewComposeFields(service: Service): boolean {
 					field as keyof NonNullable<Service['healthcheck']>
 				] != null
 			) {
+				console.warn(`service.healthcheck.${field} is not supported`);
 				return true;
 			}
 		}
@@ -66,6 +90,7 @@ export function usesNewComposeFields(service: Service): boolean {
 			}
 			for (const field of NEW_COMPOSE_NETWORK_FIELDS) {
 				if (network[field as keyof typeof network] != null) {
+					console.warn(`service.network.${field} is not supported`);
 					return true;
 				}
 			}

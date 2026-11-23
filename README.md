@@ -180,3 +180,7 @@ Supports validation of contract requirement labels:
 - `io.balena.features.requires.hw.device-type`: Device type slug
 - `io.balena.features.requires.arch.sw`: Architecture (`aarch64`, `amd64`, `armv7hf`, etc.)
 - `io.balena.features.requires.sw.l4t`: L4T version range
+
+`toImageDescriptors()` also adds a `sw.supervisor` requirement of `>=19.3.0` to
+any service that sets `annotations` or `runtime`, so an older Supervisor rejects
+the release rather than running it without the field.
